@@ -1,0 +1,20 @@
+{
+  "name": "worldcup-sync-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Google World Cup widget → REST API (single-file)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "scrape": "node -e \"import('dotenv/config');import('./server.js')\"",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.50.1"
+  }
+}

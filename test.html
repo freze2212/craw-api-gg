@@ -1,0 +1,198 @@
+<style type="text/css">.content-html { font-family: 'Roboto', sans-serif; }
+    .brand-header { width: 100%; padding: 10px 0; }
+    .brand-header-item-1 { text-align: center; font-size: 28px; font-weight: 700; color: #006719; line-height: 1.2; }
+    .brand-header-item-2 { text-align: center; font-size: 14px; font-weight: 700; color: #0057FF; margin-top: 5px; }
+    .blink-text { animation: blinkColor 0.5s infinite alternate; }
+    @keyframes blinkColor { 0% { color: red; } 100% { color: green; } }
+
+    .tab-logic { display: none !important; }
+    .tab-menu { display: flex; justify-content: center; gap: 5px; position: relative; z-index: 10; }
+    .tab-btn {
+        padding: 12px 25px; cursor: pointer; background: #e0e0e0; color: #333;
+        border: 2px solid #ccc; border-bottom: none; border-radius: 10px 10px 0 0;
+        font-weight: bold; font-size: 14px;
+    }
+    .tab-content-box {
+        display: none; border: 2px solid #006719; border-radius: 15px; background: #fff;
+        padding: 16px; min-height: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-top: 0;
+    }
+    #tab1-trigger:checked ~ .tab-menu label[for="tab1-trigger"],
+    #tab2-trigger:checked ~ .tab-menu label[for="tab2-trigger"],
+    #tab3-trigger:checked ~ .tab-menu label[for="tab3-trigger"] {
+        background: #006719 !important; color: #fed304 !important; border-color: #006719;
+        padding-bottom: 15px; margin-top: -5px;
+    }
+    #tab1-trigger:checked ~ .tab-container #content1,
+    #tab2-trigger:checked ~ .tab-container #content2,
+    #tab3-trigger:checked ~ .tab-container #content3 { display: block !important; }
+
+    .tab-content-box img { max-width: 100%; height: auto; }
+    .tab-content-box p { margin-bottom: 12px; line-height: 1.6; color: #006719; }
+
+    /* ── Lịch thi đấu card grid (layout mẫu) ── */
+    .wc-fixture-board { width: 100%; }
+    .wc-day-block { margin-bottom: 14px; }
+    .wc-day-head {
+        background: #006719; color: #fff; font-weight: 700; font-size: 15px;
+        padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;
+        text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .wc-match-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .wc-match-card {
+        display: flex; background: #edf8f0; border: none;
+        border-radius: 10px; overflow: hidden; min-height: 112px;
+        box-shadow: 0 0 0 1px #d4ecd9;
+    }
+    .wc-card-left {
+        flex: 1; padding: 12px 12px 12px 14px; border-right: 1px solid #c5e6ce;
+        display: flex; flex-direction: column; justify-content: flex-start; gap: 7px;
+    }
+    .wc-group { font-size: 14px; font-weight: 700; color: #006719; line-height: 1.2; }
+    .wc-team {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 14px; font-weight: 700; color: #006719; line-height: 1.2;
+    }
+    .wc-team img {
+        width: 28px; height: 20px; object-fit: cover; border-radius: 2px;
+        border: 1px solid #ccc; flex-shrink: 0; background: #fff;
+    }
+    .wc-card-right {
+        width: 96px; flex-shrink: 0; padding: 12px 10px 10px;
+        display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    }
+    .wc-datetime { text-align: center; color: #006719; font-weight: 700; line-height: 1.35; }
+    .wc-datetime .d { font-size: 14px; display: block; }
+    .wc-datetime .t { font-size: 14px; display: block; }
+    .wc-bet-btn {
+        display: inline-block; background: #004d12; color: #fff !important;
+        font-size: 11px; font-weight: 700; text-decoration: none !important;
+        padding: 7px 12px; border-radius: 999px; white-space: nowrap; text-align: center;
+        margin-top: 6px;
+    }
+    .wc-bet-btn:hover { background: #004d12; }
+    .wc-board-empty, .wc-board-error {
+        text-align: center; padding: 24px; color: #006719; font-weight: 600;
+    }
+    .wc-board-error { color: #c62828; }
+
+    @media (max-width: 640px) {
+        .wc-match-grid { grid-template-columns: 1fr; }
+        .brand-header-item-1 { font-size: 18px; }
+        .tab-btn { padding: 10px 8px; font-size: 12px; }
+    }
+</style>
+<script>window.WC_API_BASE = window.WC_API_BASE || 'http://localhost:5290';</script>
+<div class="content-html">
+<div class="brand-header">
+<div class="brand-header-item-1"><img alt="" src="https://images.9734232.com/mcs-images/announcement/qq88vnkf4/3967059_1762761074396.jpeg" /></div>
+<div class="brand-header-item-1">&nbsp;</div>
+<div class="brand-header-item-1">QQ88 - DỄ CHƠI, DỄ PH&Aacute;T T&Agrave;I</div>
+<div class="brand-header-item-2">LINK TRUY CẬP TR&Ecirc;N ĐIỆN THOẠI MƯỢT NHẤT: <a href="https://52999.com/" style="text-decoration:none;"><b><span class="blink-text">52999.com</span></b></a></div>
+</div>
+
+<div class="qq88-wrapper" style="max-width:100%;margin:20px auto;">
+<input class="tab-logic" id="tab1-trigger" name="qq88-tabs" type="radio" />
+<input checked="checked" class="tab-logic" id="tab2-trigger" name="qq88-tabs" type="radio" />
+<input class="tab-logic" id="tab3-trigger" name="qq88-tabs" type="radio" />
+<div class="tab-menu">
+<label class="tab-btn" for="tab1-trigger">THỂ THỨC ĐẤU</label>
+<label class="tab-btn" for="tab2-trigger">LỊCH THI ĐẤU</label>
+<label class="tab-btn" for="tab3-trigger">C&Ugrave;NG PH&Acirc;N T&Iacute;CH</label>
+</div>
+<div class="tab-container">
+<div class="tab-content-box" id="content1">
+<p><img src="https://i.imgur.com/M1bGEh1.png" />&nbsp;Thể thức&nbsp;thi đấu:</p>
+<p>✅&nbsp;<strong>Mỹ</strong> c&oacute; 11 th&agrave;nh phố đăng cai...</p>
+<p style="text-align:center">&nbsp;</p>
+</div>
+
+<div class="tab-content-box" id="content2">
+<div id="wc-fixture-board" class="wc-fixture-board">
+<div class="wc-board-empty">Đang tải lịch thi đấu...</div>
+</div>
+</div>
+
+<div class="tab-content-box" id="content3">
+<p><img alt="" src="https://media.rtdnjdferfvn.com/public/qq88/site-cskh/cfe77c7b-5e26-4abf-9b26-f575a87b5108.jpg" /></p>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+(function() {
+    var BET_URL = 'https://www.qq8893.com/seamless?gameType=SPORTS';
+
+    function resolveApiBase() {
+        if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
+        try {
+            var port = location.port || (location.protocol === 'https:' ? '443' : '80');
+            if (port === '5290') return location.origin;
+        } catch (e) {}
+        return 'http://localhost:5290';
+    }
+
+    var WC_API = resolveApiBase();
+    var board = document.getElementById('wc-fixture-board');
+
+    function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function cardHtml(m) {
+        return '<div class="wc-match-card">'
+            + '<div class="wc-card-left">'
+            + '<div class="wc-group">' + esc(m.group) + '</div>'
+            + '<div class="wc-team"><img src="' + esc(m.homeFlag) + '" alt="" /><span>' + esc(m.home) + '</span></div>'
+            + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" /><span>' + esc(m.away) + '</span></div>'
+            + '</div>'
+            + '<div class="wc-card-right">'
+            + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
+            + '<a class="wc-bet-btn" href="' + BET_URL + '" target="_blank" rel="noopener">Cược ngay</a>'
+            + '</div></div>';
+    }
+
+    function renderBoard(fixtureDays) {
+        if (!board) return;
+        if (!fixtureDays || !fixtureDays.length) {
+            board.innerHTML = '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
+            return;
+        }
+        board.innerHTML = fixtureDays.map(function(day) {
+            return '<div class="wc-day-block">'
+                + '<div class="wc-day-head">' + esc(day.title || ('VÒNG ĐẤU BẢNG - ' + day.date)) + '</div>'
+                + '<div class="wc-match-grid">' + (day.matches || []).map(cardHtml).join('') + '</div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function loadBoard() {
+        fetch(WC_API + '/api/v1/worldcup')
+            .then(function(r) { return r.json(); })
+            .then(function(j) {
+                var data = (j && j.data) ? j.data : {};
+                if (data.fixtureDays && data.fixtureDays.length) {
+                    renderBoard(data.fixtureDays);
+                } else if (data.fixtures && data.fixtures.length) {
+                    var byDate = {};
+                    data.fixtures.forEach(function(m) {
+                        var k = m.date || 'khác';
+                        if (!byDate[k]) byDate[k] = { date: k, title: 'VÒNG ĐẤU BẢNG - ' + k, matches: [] };
+                        byDate[k].matches.push(m);
+                    });
+                    renderBoard(Object.values(byDate));
+                } else {
+                    renderBoard([]);
+                }
+            })
+            .catch(function() {
+                if (board) board.innerHTML = '<div class="wc-board-error">Không tải được API (' + esc(WC_API) + ')</div>';
+            });
+    }
+
+    loadBoard();
+    setInterval(loadBoard, 5 * 60 * 1000);
+})();
+</script>
