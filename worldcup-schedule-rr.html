@@ -1,0 +1,198 @@
+<style type="text/css">.content-html { font-family: 'Roboto', sans-serif; }
+    .brand-header { width: 100%; }
+    .brand-header-item-1 {
+        text-align: center; font-family: 'Roboto', Times, serif; font-size: 28px;
+        font-weight: 700; color: #348EF3; padding: 8px 0 5px; line-height: 23.44px;
+    }
+    .brand-header-item-2 {
+        text-align: center; font-family: 'Roboto', Times, serif; font-size: 14px;
+        font-weight: 700; line-height: 18.75px; color: red; margin-top: 5px;
+    }
+    .blink-text { animation: blinkColor 0.5s infinite alternate; }
+    @keyframes blinkColor { 0% { color: red; } 100% { color: green; } }
+
+    .schedule-wrapper { max-width: 100%; margin: 20px auto; }
+
+    .tab-menu {
+        display: flex; justify-content: center; gap: 5px;
+        position: relative; z-index: 10;
+    }
+    .tab-btn-active {
+        padding: 12px 25px; background: #348EF3; color: #fff;
+        border: 2px solid #348EF3; border-bottom: none;
+        border-radius: 10px 10px 0 0; font-weight: bold; font-size: 14px;
+        padding-bottom: 15px; margin-top: -5px;
+    }
+    .tab-content-box {
+        border: 2px solid #348EF3; border-radius: 15px; background: #fff;
+        padding: 16px; min-height: 250px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-top: 0;
+    }
+
+    /* ── Lịch thi đấu card grid ── */
+    .wc-fixture-board { width: 100%; }
+    .wc-day-block { margin-bottom: 14px; }
+    .wc-day-head {
+        background: #348EF3; color: #fff; font-weight: 700; font-size: 15px;
+        padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;
+        text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .wc-match-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .wc-match-card {
+        display: flex; background: #eef5ff; border: none;
+        border-radius: 10px; overflow: hidden; min-height: 112px;
+        box-shadow: 0 0 0 1px #cfe3fc;
+    }
+    .wc-card-left {
+        flex: 1; padding: 12px 12px 12px 14px; border-right: 1px solid #cfe3fc;
+        display: flex; flex-direction: column; justify-content: flex-start; gap: 7px;
+    }
+    .wc-group { font-size: 14px; font-weight: 700; color: #348EF3; line-height: 1.2; }
+    .wc-team {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 14px; font-weight: 700; color: #348EF3; line-height: 1.2;
+    }
+    .wc-team img {
+        width: 28px; height: 20px; object-fit: cover; border-radius: 2px;
+        border: 1px solid #ccc; flex-shrink: 0; background: #fff;
+    }
+    .wc-card-right {
+        width: 96px; flex-shrink: 0; padding: 12px 10px 10px;
+        display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    }
+    .wc-datetime { text-align: center; color: #348EF3; font-weight: 700; line-height: 1.35; }
+    .wc-datetime .d { font-size: 14px; display: block; }
+    .wc-datetime .t { font-size: 14px; display: block; }
+    .wc-bet-btn {
+        display: inline-block; background: #348EF3; color: #fff !important;
+        font-size: 11px; font-weight: 700; text-decoration: none !important;
+        padding: 7px 12px; border-radius: 999px; white-space: nowrap; text-align: center;
+        margin-top: 6px;
+    }
+    .wc-bet-btn:hover { background: #2563b0; }
+    .wc-board-empty, .wc-board-error {
+        text-align: center; padding: 24px; color: #348EF3; font-weight: 600;
+    }
+    .wc-board-error { color: #c62828; }
+
+    @media (max-width: 640px) {
+        .wc-match-grid { grid-template-columns: 1fr; }
+        .tab-btn-active { padding: 10px 16px; font-size: 12px; }
+    }
+</style>
+<script>window.WC_API_BASE = window.WC_API_BASE || 'https://hacksexy.online';</script>
+<div class="content-html">
+<div class="brand-header">
+<p>&nbsp;</p>
+<div class="brand-header-item-1"><span style="font-family:Times New Roman,Times,serif;">RR88 - S&Acirc;N CHƠI UY T&Iacute;N, THƯƠNG HIỆU TIỀN TỶ</span></div>
+<div class="brand-header-item-2"><span style="font-family:Times New Roman,Times,serif;">LINK TRUY CẬP TR&Ecirc;N ĐIỆN THOẠI MƯỢT NHẤT:<span style="font-size:20px;"> </span><a href="#" style="text-decoration:none;"><b><span class="blink-text">12888.com</span></b></a></span></div>
+</div>
+
+<div class="schedule-wrapper">
+<div class="tab-menu">
+<div class="tab-btn-active">LỊCH THI ĐẤU</div>
+</div>
+<div class="tab-content-box">
+<div id="wc-fixture-board" class="wc-fixture-board" data-wc-api="https://hacksexy.online" data-bet-url="/sports">
+<div class="wc-board-empty">Đang tải lịch thi đấu...</div>
+<noscript><div class="wc-board-error">Trình duyệt đang tắt JavaScript — không tải được lịch thi đấu.</div></noscript>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://hacksexy.online/wc-board-loader.js" defer></script>
+<script>
+(function() {
+    if (window.__WC_BOARD_BOOTED) return;
+    window.__WC_BOARD_BOOTED = true;
+
+    var BET_URL = '/sports';
+
+    function resolveApiBase() {
+        if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
+        try {
+            var h = location.hostname;
+            if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5290';
+            if (h === 'hacksexy.online' || h === '160.22.161.170') return location.origin;
+        } catch (e) {}
+        return 'https://hacksexy.online';
+    }
+
+    function boot() {
+        var board = document.getElementById('wc-fixture-board');
+        if (!board || board.getAttribute('data-wc-loaded') === '1') return;
+
+        var WC_API = resolveApiBase();
+
+        function esc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function cardHtml(m) {
+            return '<div class="wc-match-card">'
+                + '<div class="wc-card-left">'
+                + '<div class="wc-group">' + esc(m.group) + '</div>'
+                + '<div class="wc-team"><img src="' + esc(m.homeFlag) + '" alt="" loading="lazy" /><span>' + esc(m.home) + '</span></div>'
+                + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" loading="lazy" /><span>' + esc(m.away) + '</span></div>'
+                + '</div>'
+                + '<div class="wc-card-right">'
+                + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
+                + '<a class="wc-bet-btn" href="' + BET_URL + '">Cược ngay</a>'
+                + '</div></div>';
+        }
+
+        function renderBoard(fixtureDays) {
+            if (!fixtureDays || !fixtureDays.length) {
+                board.innerHTML = '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
+                return;
+            }
+            board.innerHTML = fixtureDays.map(function(day) {
+                return '<div class="wc-day-block">'
+                    + '<div class="wc-day-head">' + esc(day.title || ('VÒNG ĐẤU BẢNG - ' + day.date)) + '</div>'
+                    + '<div class="wc-match-grid">' + (day.matches || []).map(cardHtml).join('') + '</div>'
+                    + '</div>';
+            }).join('');
+            board.setAttribute('data-wc-loaded', '1');
+        }
+
+        function loadBoard() {
+            fetch(WC_API + '/api/v1/worldcup')
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function(j) {
+                    var data = (j && j.data) ? j.data : {};
+                    if (data.fixtureDays && data.fixtureDays.length) {
+                        renderBoard(data.fixtureDays);
+                    } else if (data.fixtures && data.fixtures.length) {
+                        var byDate = {};
+                        data.fixtures.forEach(function(m) {
+                            var k = m.date || 'khác';
+                            if (!byDate[k]) byDate[k] = { date: k, title: 'VÒNG ĐẤU BẢNG - ' + k, matches: [] };
+                            byDate[k].matches.push(m);
+                        });
+                        renderBoard(Object.values(byDate));
+                    } else {
+                        renderBoard([]);
+                    }
+                })
+                .catch(function(err) {
+                    board.innerHTML = '<div class="wc-board-error">Không tải được API (' + esc(WC_API) + ') — ' + esc(err && err.message) + '</div>';
+                });
+        }
+
+        loadBoard();
+        setInterval(loadBoard, 5 * 60 * 1000);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+})();
+</script>

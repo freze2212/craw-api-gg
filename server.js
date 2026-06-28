@@ -18,8 +18,9 @@ import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName } f
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
 const CACHE_FILE = path.join(DATA_DIR, 'cache.json');
-const SCHEDULE_HTML = path.join(__dirname, 'worldcup-schedule.html');
-const SCHEDULE2_HTML = path.join(__dirname, 'worldcup-schedule-2.html');
+const SCHEDULE_HTML = path.join(__dirname, 'worldcup-schedule-mm.html');
+const SCHEDULE2_HTML = path.join(__dirname, 'worldcup-schedule-rr.html');
+const BOARD_LOADER_JS = path.join(__dirname, 'wc-board-loader.js');
 const TEST_HTML = path.join(__dirname, 'test.html');
 
 const CONFIG = {
@@ -347,6 +348,15 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   const result = await runSync('api');
   const c = cache || (await loadCache());
   res.json({ success: result.ok !== false, result, data: c.api });
+});
+
+app.get('/wc-board-loader.js', async (_req, res) => {
+  try {
+    const js = await readFile(BOARD_LOADER_JS, 'utf8');
+    res.type('application/javascript').setHeader('Cache-Control', 'public, max-age=300').send(js);
+  } catch {
+    res.status(404).send('// wc-board-loader.js not found');
+  }
 });
 
 app.get('/schedule', async (_req, res) => {
