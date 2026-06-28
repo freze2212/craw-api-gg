@@ -87,15 +87,36 @@ X-WC-Api-Base: https://hacksexy.online
 
 Nếu vẫn thấy `localhost:5290` → pm2 **chưa restart** hoặc **pull sai folder**.
 
-## 6. Gắn vào CMS
+## 6. Gắn vào CMS (bắt buộc dán HTML)
 
-**Cách A — Iframe (ổn định nhất):**
+**File dán vào CMS:**
+- RR88 → `worldcup-schedule-rr.html`
+- MM88 → `worldcup-schedule-mm.html`
 
+**Cách dán:**
+1. Mở file → Copy **toàn bộ**
+2. CMS → chế độ **HTML / Source** (không dùng WYSIWYG)
+3. Paste → Save
+
+**Cấu trúc file CMS (không có inline script):**
 ```html
-<iframe src="https://hacksexy.online/schedule2" width="100%" height="900" frameborder="0"></iframe>
+<style>...</style>
+<div>... header + tab ...</div>
+<div id="wc-fixture-board" data-wc-api="https://hacksexy.online" data-bet-url="/sports">
+  <div class="wc-board-empty">Đang tải lịch thi đấu...</div>
+</div>
+<script src="https://hacksexy.online/wc-board-loader.js"></script>
 ```
 
-**Cách B — Dán HTML:** copy `worldcup-schedule-rr.html`, paste chế độ HTML/source.
+Loader gọi API `https://hacksexy.online/api/v1/worldcup` — hoạt động trên **mọi domain CMS**.
+
+**Nếu CMS xóa thẻ `<script src=...>`:** liên hệ admin CMS whitelist domain `hacksexy.online`.
+
+**Verify sau deploy:**
+```bash
+curl -s https://hacksexy.online/wc-board-loader.js | head -c 80
+curl -s https://hacksexy.online/schedule2 | grep wc-board-loader
+```
 
 ## 7. Dev local
 

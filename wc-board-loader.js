@@ -1,4 +1,6 @@
 (function () {
+  var boardTimers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -43,6 +45,7 @@
     if (!board) return;
     if (!fixtureDays || !fixtureDays.length) {
       board.innerHTML = '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
+      board.setAttribute('data-wc-loaded', '1');
       return;
     }
     board.innerHTML = fixtureDays.map(function (day) {
@@ -55,16 +58,18 @@
         + '</div>'
       );
     }).join('');
+    board.setAttribute('data-wc-loaded', '1');
   }
 
   function showError(board, api, msg) {
     if (!board) return;
     board.innerHTML = '<div class="wc-board-error">' + esc(msg || ('Không tải được API (' + api + ')')) + '</div>';
+    board.setAttribute('data-wc-loaded', 'error');
   }
 
   function loadBoard(board) {
     var api = resolveApiBase(board);
-    fetch(api + '/api/v1/worldcup')
+    fetch(api + '/api/v1/worldcup', { mode: 'cors', credentials: 'omit' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
@@ -86,21 +91,26 @@
         }
       })
       .catch(function (err) {
-        showError(board, api, 'Không tải được lịch thi đấu. Kiểm tra API: ' + api + ' — ' + (err && err.message ? err.message : 'lỗi mạng'));
+        showError(board, api, 'Không tải được lịch thi đấu. API: ' + api + ' — ' + (err && err.message ? err.message : 'lỗi mạng'));
       });
   }
 
+  function watchBoard(board) {
+    if (board.getAttribute('data-wc-watching') === '1') return;
+    board.setAttribute('data-wc-watching', '1');
+    loadBoard(board);
+    var timer = setInterval(function () { loadBoard(board); }, 5 * 60 * 1000);
+    if (boardTimers) boardTimers.set(board, timer);
+  }
+
   function boot() {
-    if (window.__WC_BOARD_BOOTED) return;
-    window.__WC_BOARD_BOOTED = true;
     var boards = document.querySelectorAll('#wc-fixture-board, [data-wc-board]');
     if (!boards.length) return;
-    boards.forEach(function (board) {
-      if (board.getAttribute('data-wc-loaded') === '1') return;
-      loadBoard(board);
-      setInterval(function () { loadBoard(board); }, 5 * 60 * 1000);
-    });
+    boards.forEach(watchBoard);
   }
+
+  window.__WC_BOARD_BOOTED = true;
+  window.WCBoardLoader = { boot: boot, loadBoard: loadBoard };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

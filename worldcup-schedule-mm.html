@@ -879,7 +879,7 @@
   }
 }
 </style>
-<script>window.WC_API_BASE = window.WC_API_BASE || 'https://hacksexy.online';</script>
+<!-- CMS: dán toàn bộ file này vào editor HTML/source. Chỉ cần 1 thẻ script external (loader). -->
 <div class="content-html">
 <p>&nbsp;</p>
 
@@ -898,113 +898,9 @@
 <div class="tab-content-box">
 <div id="wc-fixture-board" class="wc-fixture-board" data-wc-api="https://hacksexy.online" data-bet-url="/sports">
 <div class="wc-board-empty">Đang tải lịch thi đấu...</div>
-<noscript><div class="wc-board-error">Trình duyệt đang tắt JavaScript — không tải được lịch thi đấu.</div></noscript>
 </div>
 </div>
 </div>
 </div>
 
-<script src="https://hacksexy.online/wc-board-loader.js" defer></script>
-<script>
-(function() {
-    if (window.__WC_BOARD_BOOTED) return;
-    window.__WC_BOARD_BOOTED = true;
-
-    var BET_URL = '/sports';
-
-    function resolveApiBase(board) {
-        var fromData = board && board.getAttribute('data-wc-api');
-        if (fromData) return fromData.replace(/\/$/, '');
-
-        var base = window.WC_API_BASE ? String(window.WC_API_BASE).replace(/\/$/, '') : '';
-        if (base) {
-            try {
-                var h = location.hostname;
-                if (/localhost|127\.0\.0\.1/.test(base) && h !== 'localhost' && h !== '127.0.0.1') base = '';
-            } catch (e) {}
-        }
-        if (base) return base;
-
-        try {
-            var host = location.hostname;
-            if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:5290';
-            if (host === 'hacksexy.online' || host === '160.22.161.170') return location.origin;
-        } catch (e) {}
-        return 'https://hacksexy.online';
-    }
-
-    function boot() {
-        var board = document.getElementById('wc-fixture-board');
-        if (!board || board.getAttribute('data-wc-loaded') === '1') return;
-
-        var WC_API = resolveApiBase(board);
-
-        function esc(s) {
-            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        function cardHtml(m) {
-            return '<div class="wc-match-card">'
-                + '<div class="wc-card-left">'
-                + '<div class="wc-group">' + esc(m.group) + '</div>'
-                + '<div class="wc-team"><img src="' + esc(m.homeFlag) + '" alt="" loading="lazy" /><span>' + esc(m.home) + '</span></div>'
-                + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" loading="lazy" /><span>' + esc(m.away) + '</span></div>'
-                + '</div>'
-                + '<div class="wc-card-right">'
-                + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
-                + '<a class="wc-bet-btn" href="' + BET_URL + '">Cược ngay</a>'
-                + '</div></div>';
-        }
-
-        function renderBoard(fixtureDays) {
-            if (!fixtureDays || !fixtureDays.length) {
-                board.innerHTML = '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
-                return;
-            }
-            board.innerHTML = fixtureDays.map(function(day) {
-                return '<div class="wc-day-block">'
-                    + '<div class="wc-day-head">' + esc(day.title || ('VÒNG ĐẤU BẢNG - ' + day.date)) + '</div>'
-                    + '<div class="wc-match-grid">' + (day.matches || []).map(cardHtml).join('') + '</div>'
-                    + '</div>';
-            }).join('');
-            board.setAttribute('data-wc-loaded', '1');
-        }
-
-        function loadBoard() {
-            fetch(WC_API + '/api/v1/worldcup')
-                .then(function(r) {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.json();
-                })
-                .then(function(j) {
-                    var data = (j && j.data) ? j.data : {};
-                    if (data.fixtureDays && data.fixtureDays.length) {
-                        renderBoard(data.fixtureDays);
-                    } else if (data.fixtures && data.fixtures.length) {
-                        var byDate = {};
-                        data.fixtures.forEach(function(m) {
-                            var k = m.date || 'khác';
-                            if (!byDate[k]) byDate[k] = { date: k, title: 'VÒNG ĐẤU BẢNG - ' + k, matches: [] };
-                            byDate[k].matches.push(m);
-                        });
-                        renderBoard(Object.values(byDate));
-                    } else {
-                        renderBoard([]);
-                    }
-                })
-                .catch(function(err) {
-                    board.innerHTML = '<div class="wc-board-error">Không tải được API (' + esc(WC_API) + ') — ' + esc(err && err.message) + '</div>';
-                });
-        }
-
-        loadBoard();
-        setInterval(loadBoard, 5 * 60 * 1000);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
-    } else {
-        boot();
-    }
-})();
-</script>
+<script src="https://hacksexy.online/wc-board-loader.js"></script>
