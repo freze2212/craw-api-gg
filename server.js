@@ -20,6 +20,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const CACHE_FILE = path.join(DATA_DIR, 'cache.json');
 const SCHEDULE_HTML = path.join(__dirname, 'worldcup-schedule-mm.html');
 const SCHEDULE2_HTML = path.join(__dirname, 'worldcup-schedule-rr.html');
+const SCHEDULE2_LEGACY = path.join(__dirname, 'worldcup-schedule-2.html');
 const BOARD_LOADER_JS = path.join(__dirname, 'wc-board-loader.js');
 const TEST_HTML = path.join(__dirname, 'test.html');
 
@@ -350,6 +351,29 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
+function resolvePublicApiBase(req) {
+  const host = req.get('host') || '';
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  if (host.includes('localhost') || host.startsWith('127.0.0.1')) {
+    return `http://localhost:${CONFIG.port}`;
+  }
+  return `${proto}://${host}`.replace(/\/$/, '');
+}
+
+/** Fix legacy HTML that still points fetch() at localhost:5290 */
+function patchScheduleHtml(html, req) {
+  const apiBase = resolvePublicApiBase(req);
+  const inject = `<script>window.WC_API_BASE='${apiBase}';</script>`;
+  let out = html
+    .replace(/window\.WC_API_BASE\s*=\s*[^;]+;/g, `window.WC_API_BASE='${apiBase}';`)
+    .replace(/https?:\/\/localhost:5290/g, apiBase)
+    .replace(/return\s+'http:\/\/localhost:5290'/g, `return '${apiBase}'`);
+  if (!out.includes(inject)) {
+    out = out.replace(/<\/style>/i, `</style>\n${inject}`);
+  }
+  return out;
+}
+
 app.get('/wc-board-loader.js', async (_req, res) => {
   try {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
@@ -359,19 +383,27 @@ app.get('/wc-board-loader.js', async (_req, res) => {
   }
 });
 
-app.get('/schedule', async (_req, res) => {
+app.get('/schedule', async (req, res) => {
   try {
-    const html = await readFile(SCHEDULE_HTML, 'utf8');
-    res.type('html').send(html);
+    const html = patchScheduleHtml(await readFile(SCHEDULE_HTML, 'utf8'), req);
+    res.type('html').setHeader('Cache-Control', 'no-cache').send(html);
   } catch {
     res.status(404).send('worldcup-schedule.html not found');
   }
 });
 
-app.get('/schedule2', async (_req, res) => {
+async function readSchedule2Html() {
   try {
-    const html = await readFile(SCHEDULE2_HTML, 'utf8');
-    res.type('html').send(html);
+    return await readFile(SCHEDULE2_HTML, 'utf8');
+  } catch {
+    return await readFile(SCHEDULE2_LEGACY, 'utf8');
+  }
+}
+
+app.get('/schedule2', async (req, res) => {
+  try {
+    const html = patchScheduleHtml(await readSchedule2Html(), req);
+    res.type('html').setHeader('Cache-Control', 'no-cache').send(html);
   } catch {
     res.status(404).send('worldcup-schedule-2.html not found');
   }

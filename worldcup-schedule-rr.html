@@ -112,13 +112,12 @@
     var BET_URL = '/sports';
 
     function resolveApiBase() {
-        if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
         try {
             var h = location.hostname;
-            if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5290';
-            if (h === 'hacksexy.online' || h === '160.22.161.170') return location.origin;
+            if (h && h !== 'localhost' && h !== '127.0.0.1') return location.origin;
         } catch (e) {}
-        return 'https://hacksexy.online';
+        if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
+        return 'http://localhost:5290';
     }
 
     function boot() {

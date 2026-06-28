@@ -4,14 +4,13 @@
   }
 
   function resolveApiBase(board) {
+    try {
+      var h = location.hostname;
+      if (h && h !== 'localhost' && h !== '127.0.0.1') return location.origin;
+    } catch (e) {}
     if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
     var fromData = board && board.getAttribute('data-wc-api');
     if (fromData) return fromData.replace(/\/$/, '');
-    try {
-      var h = location.hostname;
-      if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5290';
-      if (h === 'hacksexy.online' || h === '160.22.161.170') return location.protocol + '//' + location.host;
-    } catch (e) {}
     return 'https://hacksexy.online';
   }
 
