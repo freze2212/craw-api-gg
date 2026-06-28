@@ -364,7 +364,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-rr-banner-v6';
+const BUILD_TAG = 'wc-rr-banner-v7';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 
 function resolvePublicApiBase(req) {
@@ -410,12 +410,12 @@ function patchSchedule2Html(html, req) {
   if (!out.includes('wc-top-banner')) {
     if (!out.includes('.wc-top-banner')) {
       out = out.replace(
-        /<style type="text/css">/i,
+        '<style type="text/css">',
         '<style type="text/css">html,body{margin:0;padding:0}.wc-top-banner{width:100%;line-height:0}.wc-top-banner img{width:100%;height:auto;display:block}',
       );
     }
     out = out.replace(
-      /<div class="content-html">/i,
+      '<div class="content-html">',
       '<div class="content-html"><div class="wc-top-banner"><img src="' + RR_TOP_BANNER + '" alt="Lịch thi đấu World Cup RR88" loading="eager" /></div>',
     );
   }

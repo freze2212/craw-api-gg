@@ -1,36 +1,62 @@
 #!/bin/bash
-# Chạy trên VPS — tự tìm thư mục pm2 đang dùng rồi pull + restart
+# Chạy trên VPS — pull TẤT CẢ thư mục pm2 wc-api (tránh lồng craw-api-gg/craw-api-gg) rồi restart
 set -euo pipefail
 
 APP_NAME="${1:-wc-api}"
 
-PM2_CWD=$(pm2 jlist 2>/dev/null | node -e "
+mapfile -t PM2_CWDS < <(pm2 jlist 2>/dev/null | node -e "
   const list = JSON.parse(require('fs').readFileSync(0, 'utf8'));
-  const p = list.find(x => x.name === process.argv[1]);
-  if (!p) process.exit(2);
-  process.stdout.write(p.pm2_env.pm_cwd || '');
-" "$APP_NAME") || true
+  const cwds = [...new Set(
+    list.filter(x => x.name === process.argv[1] && x.pm2_env && x.pm2_env.pm_cwd)
+      .map(x => x.pm2_env.pm_cwd)
+  )];
+  cwds.forEach(c => console.log(c));
+" "$APP_NAME")
 
-if [ -z "$PM2_CWD" ]; then
+if [ "${#PM2_CWDS[@]}" -eq 0 ]; then
   echo "Không tìm thấy pm2 app: $APP_NAME"
-  echo "Chạy: pm2 list"
+  pm2 list
   exit 1
 fi
 
-echo "==> PM2 đang chạy từ: $PM2_CWD"
-cd "$PM2_CWD"
+echo "==> Tìm thấy ${#PM2_CWDS[@]} thư mục wc-api:"
+printf '    %s\n' "${PM2_CWDS[@]}"
 
-echo "==> git pull"
-git pull origin main
+for PM2_CWD in "${PM2_CWDS[@]}"; do
+  echo ""
+  echo "==> git pull trong: $PM2_CWD"
+  cd "$PM2_CWD"
+  git pull origin main || echo "WARN: pull failed in $PM2_CWD"
+  if grep -q 'patchSchedule2Html' server.js 2>/dev/null; then
+    echo "OK: server.js có patchSchedule2Html (banner RR88)"
+  else
+    echo "WARN: server.js CHƯA có banner — kiểm tra git log -1"
+  fi
+done
 
+echo ""
 echo "==> pm2 restart $APP_NAME"
 pm2 restart "$APP_NAME"
 
 sleep 2
 echo ""
-echo "==> Kiểm tra bản mới (phải có X-WC-Build và hacksexy.online):"
-curl -sI "https://hacksexy.online/schedule2" | grep -iE 'x-wc|http'
+echo "==> Port 5290 đang listen:"
+ss -tlnp 2>/dev/null | grep 5290 || netstat -tlnp 2>/dev/null | grep 5290 || true
+
 echo ""
-curl -s "https://hacksexy.online/schedule2" | grep -m1 WC_API_BASE || true
+echo "==> Verify production:"
+curl -sI "https://hacksexy.online/schedule2" | grep -iE 'x-wc|http' || true
+echo ""
+curl -s "https://hacksexy.online/schedule2" | grep -m1 'wc-top-banner' && echo "OK: có banner" || echo "FAIL: chưa có wc-top-banner"
 curl -s "https://hacksexy.online/_wc/meta" || true
 echo ""
+
+if curl -s "https://hacksexy.online/schedule2" | grep -q 'wc-top-banner'; then
+  exit 0
+fi
+
+echo ""
+echo "!!! Vẫn chưa có banner. Thử gom 1 process wc-api duy nhất:"
+echo "    pm2 delete wc-api"
+echo "    cd /root/craw-api-gg && git pull origin main && pm2 start server.js --name wc-api && pm2 save"
+exit 1

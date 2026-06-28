@@ -41,13 +41,33 @@ certbot --nginx -d hacksexy.online
 
 ## 4. Update code (QUAN TRỌNG)
 
-**Đừng `git pull` trong thư mục sai.** Nhiều VPS bị lồng `~/craw-api-gg/craw-api-gg` nhưng pm2 chạy từ `~/craw-api-gg`.
+**Đừng `git pull` trong thư mục sai.** Nhiều VPS có **2 process `wc-api`** chạy song song:
+
+| pm2 id | exec cwd (ví dụ) |
+|--------|------------------|
+| 6 | `/root/craw-api-gg` |
+| 7 | `/root/craw-api-gg/craw-api-gg` ← **thường là bản cũ nginx đang trỏ tới** |
+
+Pull ở `~/craw-api-gg` nhưng nginx/proxy vào process ở folder lồng → **banner không lên**.
 
 ### Cách nhanh — dùng script (khuyên dùng)
 
 ```bash
 ssh root@160.22.161.170
 bash ~/craw-api-gg/deploy/restart-wc-api.sh
+```
+
+Script sẽ pull **cả 2 folder** (nếu có), restart, rồi `grep wc-top-banner`.
+
+### Fix triệt để — chỉ giữ 1 wc-api
+
+```bash
+pm2 delete wc-api
+cd /root/craw-api-gg
+git pull origin main
+grep patchSchedule2Html server.js   # phải có dòng này
+pm2 start server.js --name wc-api
+pm2 save
 ```
 
 ### Cách thủ công — xem pm2 đang chạy ở đâu
@@ -64,8 +84,11 @@ pm2 restart wc-api
 ## 5. Verify sau deploy
 
 ```bash
-# Phải thấy header X-WC-Build (bản mới)
+# Phải thấy header X-WC-Build: wc-rr-banner-v6
 curl -sI https://hacksexy.online/schedule2 | grep -i x-wc
+
+# Phải thấy banner RR88
+curl -s https://hacksexy.online/schedule2 | grep wc-top-banner
 
 # Phải là https://hacksexy.online — KHÔNG localhost
 curl -s https://hacksexy.online/schedule2 | grep WC_API_BASE
