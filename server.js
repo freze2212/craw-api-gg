@@ -389,10 +389,16 @@ app.get('/wc-board-loader.js', async (_req, res) => {
   }
 });
 
+function allowIframeEmbed(res) {
+  res.setHeader('Content-Security-Policy', 'frame-ancestors *');
+  res.removeHeader('X-Frame-Options');
+}
+
 app.get('/schedule', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
     const html = patchScheduleHtml(await readFile(SCHEDULE_HTML, 'utf8'), req);
+    allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
       .setHeader('X-WC-Build', BUILD_TAG)
@@ -415,6 +421,7 @@ app.get('/schedule2', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
     const html = patchScheduleHtml(await readSchedule2Html(), req);
+    allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
       .setHeader('X-WC-Build', BUILD_TAG)
