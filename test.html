@@ -65,13 +65,7 @@
     .wc-datetime { text-align: center; color: #006719; font-weight: 700; line-height: 1.35; }
     .wc-datetime .d { font-size: 14px; display: block; }
     .wc-datetime .t { font-size: 14px; display: block; }
-    .wc-bet-btn {
-        display: inline-block; background: #004d12; color: #fff !important;
-        font-size: 11px; font-weight: 700; text-decoration: none !important;
-        padding: 7px 12px; border-radius: 999px; white-space: nowrap; text-align: center;
-        margin-top: 6px;
-    }
-    .wc-bet-btn:hover { background: #004d12; }
+    .wc-bet-btn { display: none !important; }
     .wc-board-empty, .wc-board-error {
         text-align: center; padding: 24px; color: #006719; font-weight: 600;
     }
@@ -123,8 +117,6 @@
 
 <script>
 (function() {
-    var BET_URL = 'https://www.qq8893.com/seamless?gameType=SPORTS';
-
     function resolveApiBase() {
         if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
         try {
@@ -150,7 +142,7 @@
             + '</div>'
             + '<div class="wc-card-right">'
             + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
-            + '<a class="wc-bet-btn" href="' + BET_URL + '" target="_blank" rel="noopener">Cược ngay</a>'
+            + '<a class="wc-bet-btn" href="' + BET_URL + '">Cược ngay</a>'
             + '</div></div>';
     }
 

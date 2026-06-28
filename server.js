@@ -351,7 +351,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-cms-loader-v1';
+const BUILD_TAG = 'wc-no-bet-v1';
 
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';
@@ -362,16 +362,19 @@ function resolvePublicApiBase(req) {
   return `${proto}://${host}`.replace(/\/$/, '');
 }
 
-/** Fix legacy HTML that still points fetch() at localhost:5290 */
+/** Fix legacy HTML — strip inline scripts, keep external loader only */
 function patchScheduleHtml(html, req) {
   const apiBase = resolvePublicApiBase(req);
   let out = html
     .replace(/window\.WC_API_BASE\s*=\s*[^;]+;/g, '')
     .replace(/https?:\/\/localhost:5290/g, apiBase)
     .replace(/return\s+'http:\/\/localhost:5290'/g, `return '${apiBase}'`)
-    .replace(/<script>\s*\(function\(\)\s*\{[\s\S]*?__WC_BOARD_BOOTED[\s\S]*?<\/script>\s*/gi, '');
+    .replace(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>\s*/gi, '');
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(/<\/div>\s*$/i, '</div>\n<script src="https://hacksexy.online/wc-board-loader.js"></script>\n');
+  }
+  if (!out.includes('.wc-bet-btn')) {
+    out = out.replace(/<\/style>/i, '</style>\n<style>.wc-bet-btn{display:none!important}</style>');
   }
   return out;
 }
