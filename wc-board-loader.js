@@ -26,7 +26,7 @@
     return 'https://hacksexy.online';
   }
 
-  function cardHtml(m, betUrl) {
+  function cardHtml(m) {
     return (
       '<div class="wc-match-card">'
       + '<div class="wc-card-left">'
@@ -36,7 +36,6 @@
       + '</div>'
       + '<div class="wc-card-right">'
       + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
-      + '<a class="wc-bet-btn" href="' + esc(betUrl) + '">Cược ngay</a>'
       + '</div></div>'
     );
   }
@@ -53,7 +52,7 @@
         '<div class="wc-day-block">'
         + '<div class="wc-day-head">' + esc(day.title || ('VÒNG ĐẤU BẢNG - ' + day.date)) + '</div>'
         + '<div class="wc-match-grid">' + (day.matches || []).map(function (m) {
-          return cardHtml(m, board.getAttribute('data-bet-url') || '/sports');
+          return cardHtml(m);
         }).join('') + '</div>'
         + '</div>'
       );
