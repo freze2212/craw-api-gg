@@ -17,22 +17,33 @@
     s.id = 'wc-iframe-embed-css';
     s.textContent =
       'html,body{margin:0!important;padding:0!important;overflow:visible!important;'
-      + 'min-height:auto!important;height:auto!important;}';
+      + 'height:auto!important;min-height:0!important;max-height:none!important;'
+      + 'overscroll-behavior:none!important;-webkit-overflow-scrolling:auto!important;}';
     (document.head || document.documentElement).appendChild(s);
   })();
+
+  function measurePageHeight() {
+    var root = document.documentElement;
+    var body = document.body;
+    var nodes = document.querySelectorAll('.content-html, .wc-top-banner, .schedule-wrapper');
+    var maxBottom = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      var r = nodes[i].getBoundingClientRect();
+      maxBottom = Math.max(maxBottom, r.bottom + window.scrollY);
+    }
+    return Math.max(
+      maxBottom,
+      root ? root.scrollHeight : 0,
+      root ? root.offsetHeight : 0,
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+    );
+  }
 
   function notifyIframeHeight() {
     if (!inIframe()) return;
     try {
-      var root = document.documentElement;
-      var body = document.body;
-      var h = Math.max(
-        root.scrollHeight,
-        root.offsetHeight,
-        body ? body.scrollHeight : 0,
-        body ? body.offsetHeight : 0,
-      );
-      window.parent.postMessage({ type: 'wc-iframe-resize', height: h }, '*');
+      window.parent.postMessage({ type: 'wc-iframe-resize', height: measurePageHeight() }, '*');
     } catch (e) {}
   }
 
@@ -181,15 +192,22 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '6-iframe-scroll',
+    version: '7-iframe-scroll',
   };
 
   if (inIframe()) {
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'wc-iframe-request-height') scheduleIframeHeightNotify();
+    });
     window.addEventListener('load', scheduleIframeHeightNotify);
     window.addEventListener('resize', scheduleIframeHeightNotify);
+    document.querySelectorAll('img').forEach(function (img) {
+      if (!img.complete) img.addEventListener('load', scheduleIframeHeightNotify, { once: true });
+    });
     if (typeof ResizeObserver !== 'undefined') {
       try {
         new ResizeObserver(scheduleIframeHeightNotify).observe(document.documentElement);
+        if (document.body) new ResizeObserver(scheduleIframeHeightNotify).observe(document.body);
       } catch (e) {}
     }
   }
