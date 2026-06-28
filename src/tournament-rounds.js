@@ -54,9 +54,8 @@ export function inferRound(dateStr) {
   // Chung kết (19/7)
   if (p.m === 7 && p.d === 19) return 'final';
 
-  // Fallback: sau vòng bảng mà không khớp lịch → ưu tiên R32
+  // Fallback: ngày lẻ trên sơ đồ bracket (vd. 12/7) — không gán nhầm Vòng 16
   if (p.m === 6 && p.d >= 28) return 'r32';
-  if (p.m === 7) return 'r16';
 
   return 'group';
 }

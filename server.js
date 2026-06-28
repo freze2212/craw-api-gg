@@ -13,7 +13,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright';
-import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName } from './src/team-flags.js';
+import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName, isTbdTeam } from './src/team-flags.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -99,6 +99,17 @@ function dedupeFixtures(fixtures) {
   });
 }
 
+function isPlaceholderFixture(fx) {
+  return fx.status === 'placeholder' || (isTbdTeam(fx.home) && isTbdTeam(fx.away));
+}
+
+/** Bỏ slot placeholder cuối sơ đồ GG (12/7+) — không phải lịch Vòng 16 thật */
+function shouldDropFixture(fx) {
+  if (!isPlaceholderFixture(fx)) return false;
+  const [d, m] = String(fx.date || '').split('/').map(Number);
+  return m === 7 && d >= 12;
+}
+
 function buildApiPayload(raw) {
   const rawFixtures = [];
   for (const sn of raw.rawSnippets || []) {
@@ -106,7 +117,9 @@ function buildApiPayload(raw) {
     const fx = parseFixtureSnippet(sn.text);
     if (fx) rawFixtures.push({ id: `fx-${rawFixtures.length + 1}`, ...fx });
   }
-  const uniqueFixtures = dedupeFixtures(rawFixtures).map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
+  const uniqueFixtures = dedupeFixtures(rawFixtures)
+    .filter((fx) => !shouldDropFixture(fx))
+    .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
   const flagOpts = { tbdFlagUrl: raw.tbdFlagUrl || '' };
   const fixtures = uniqueFixtures.map((f, i) => enrichFixture(f, i, flagOpts));
   const fixtureDays = groupFixturesByDate(uniqueFixtures, flagOpts);
@@ -130,7 +143,7 @@ function buildApiPayload(raw) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -526,7 +539,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 8 ||
+  cache.api.schemaVersion !== 9 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
