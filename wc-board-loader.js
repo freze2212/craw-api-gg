@@ -16,7 +16,7 @@
     var s = document.createElement('style');
     s.id = 'wc-iframe-embed-css';
     s.textContent =
-      'html,body{margin:0!important;padding:0!important;overflow:hidden!important;'
+      'html,body{margin:0!important;padding:0!important;overflow:visible!important;'
       + 'min-height:auto!important;height:auto!important;}';
     (document.head || document.documentElement).appendChild(s);
   })();
@@ -181,7 +181,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '5-iframe-resize',
+    version: '6-iframe-scroll',
   };
 
   if (inIframe()) {

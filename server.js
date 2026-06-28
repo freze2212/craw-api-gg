@@ -22,6 +22,7 @@ const SCHEDULE_HTML = path.join(__dirname, 'worldcup-schedule-mm.html');
 const SCHEDULE2_HTML = path.join(__dirname, 'worldcup-schedule-rr.html');
 const SCHEDULE2_LEGACY = path.join(__dirname, 'worldcup-schedule-2.html');
 const BOARD_LOADER_JS = path.join(__dirname, 'wc-board-loader.js');
+const IFRAME_PARENT_JS = path.join(__dirname, 'wc-iframe-parent.js');
 const TEST_HTML = path.join(__dirname, 'test.html');
 
 const CONFIG = {
@@ -364,7 +365,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-rr-banner-v7';
+const BUILD_TAG = 'wc-iframe-scroll-v8';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 
 function resolvePublicApiBase(req) {
@@ -396,10 +397,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe5"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe6"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe5');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe6');
   }
   return out;
 }
@@ -431,10 +432,22 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '5-iframe-resize')
+      .setHeader('X-WC-Loader', '6-iframe-scroll')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
+  }
+});
+
+app.get('/wc-iframe-parent.js', async (_req, res) => {
+  try {
+    const js = await readFile(IFRAME_PARENT_JS, 'utf8');
+    res.type('application/javascript')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .send(js);
+  } catch {
+    res.status(404).send('// wc-iframe-parent.js not found');
   }
 });
 
