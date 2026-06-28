@@ -365,8 +365,57 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-iframe-scroll-v9';
+const BUILD_TAG = 'wc-noscript-embed-v10';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
+const EMBED_BASE = 'https://hacksexy.online';
+
+/** Ước lượng chiều cao iframe (CMS không cho script → height phải đủ lớn) */
+function estimateEmbedHeight(api) {
+  const BANNER = 1320;
+  const HEADER = 150;
+  const TAB = 110;
+  const PAD = 90;
+  const DAY_HEAD = 54;
+  const ROW = 136;
+
+  let days = api?.fixtureDays || [];
+  if (!days.length && api?.fixtures?.length) {
+    const byDate = {};
+    for (const f of api.fixtures) {
+      const k = f.date || 'khac';
+      if (!byDate[k]) byDate[k] = { matches: [] };
+      byDate[k].matches.push(f);
+    }
+    days = Object.values(byDate);
+  }
+
+  let h = BANNER + HEADER + TAB + PAD;
+  for (const day of days) {
+    h += DAY_HEAD;
+    h += Math.ceil((day.matches || []).length / 2) * ROW;
+  }
+  return Math.ceil(Math.max(h * 1.5, 2800));
+}
+
+function buildIframeSnippet(path, height, title) {
+  const src = `${EMBED_BASE}${path}`;
+  return `<iframe
+  src="${src}"
+  title="${title}"
+  width="100%"
+  height="${height}"
+  scrolling="no"
+  frameborder="0"
+  style="border:0;display:block;width:100%;overflow:visible;vertical-align:top;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade"
+></iframe>`;
+}
+
+async function getEmbedHeight() {
+  const c = cache || (await loadCache());
+  return estimateEmbedHeight(c.api);
+}
 
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';
@@ -423,8 +472,63 @@ function patchSchedule2Html(html, req) {
   return out;
 }
 
-app.get('/_wc/meta', (_req, res) => {
-  res.json({ build: BUILD_TAG, patchScheduleHtml: true, schedule2: '/schedule2' });
+app.get('/_wc/meta', async (_req, res) => {
+  const embedHeight = await getEmbedHeight();
+  res.json({
+    build: BUILD_TAG,
+    patchScheduleHtml: true,
+    schedule2: '/schedule2',
+    embedHeight,
+    embedSnippetRr: '/embed/snippet/rr.txt',
+    embedSnippetMm: '/embed/snippet/mm.txt',
+  });
+});
+
+app.get('/embed/snippet/rr.txt', async (_req, res) => {
+  const h = await getEmbedHeight();
+  res.type('text/plain; charset=utf-8')
+    .setHeader('Cache-Control', 'no-cache')
+    .setHeader('X-WC-Embed-Height', String(h))
+    .send(buildIframeSnippet('/schedule2', h, 'Lịch thi đấu World Cup RR88'));
+});
+
+app.get('/embed/snippet/mm.txt', async (_req, res) => {
+  const h = await getEmbedHeight();
+  res.type('text/plain; charset=utf-8')
+    .setHeader('Cache-Control', 'no-cache')
+    .setHeader('X-WC-Embed-Height', String(h))
+    .send(buildIframeSnippet('/schedule', h, 'Lịch thi đấu World Cup MM88'));
+});
+
+app.get('/embed/snippet/rr', async (_req, res) => {
+  const h = await getEmbedHeight();
+  const snippet = buildIframeSnippet('/schedule2', h, 'Lịch thi đấu World Cup RR88');
+  const esc = snippet.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  res.type('html').setHeader('Cache-Control', 'no-cache').send(`<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"/><title>RR88 iframe snippet</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
+textarea{width:100%;height:220px;font-family:monospace;font-size:13px;padding:12px;border:1px solid #ccc;border-radius:8px}
+p{color:#444;line-height:1.5}</style></head><body>
+<h1>RR88 — dán iframe vào CMS (không cần script)</h1>
+<p>Chiều cao tự tính: <strong>${h}px</strong> — copy toàn bộ ô dưới:</p>
+<textarea readonly onclick="this.select()">${esc}</textarea>
+<p>Cập nhật khi thêm trận: mở lại trang này.</p>
+</body></html>`);
+});
+
+app.get('/embed/snippet/mm', async (_req, res) => {
+  const h = await getEmbedHeight();
+  const snippet = buildIframeSnippet('/schedule', h, 'Lịch thi đấu World Cup MM88');
+  const esc = snippet.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  res.type('html').setHeader('Cache-Control', 'no-cache').send(`<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"/><title>MM88 iframe snippet</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
+textarea{width:100%;height:220px;font-family:monospace;font-size:13px;padding:12px;border:1px solid #ccc;border-radius:8px}
+p{color:#444;line-height:1.5}</style></head><body>
+<h1>MM88 — dán iframe vào CMS (không cần script)</h1>
+<p>Chiều cao tự tính: <strong>${h}px</strong> — copy toàn bộ ô dưới:</p>
+<textarea readonly onclick="this.select()">${esc}</textarea>
+</body></html>`);
 });
 
 app.get('/wc-board-loader.js', async (_req, res) => {
@@ -482,12 +586,14 @@ async function readSchedule2Html() {
 app.get('/schedule2', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
+    const embedHeight = await getEmbedHeight();
     const html = patchSchedule2Html(await readSchedule2Html(), req);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
       .setHeader('X-WC-Build', BUILD_TAG)
       .setHeader('X-WC-Api-Base', apiBase)
+      .setHeader('X-WC-Embed-Height', String(embedHeight))
       .send(html);
   } catch {
     res.status(404).send('worldcup-schedule-2.html not found');
