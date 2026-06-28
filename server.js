@@ -351,7 +351,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-patch-20260529';
+const BUILD_TAG = 'wc-patch-20260529b';
 
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';

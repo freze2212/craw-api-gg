@@ -4,13 +4,23 @@
   }
 
   function resolveApiBase(board) {
-    try {
-      var h = location.hostname;
-      if (h && h !== 'localhost' && h !== '127.0.0.1') return location.origin;
-    } catch (e) {}
-    if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
     var fromData = board && board.getAttribute('data-wc-api');
     if (fromData) return fromData.replace(/\/$/, '');
+
+    var base = window.WC_API_BASE ? String(window.WC_API_BASE).replace(/\/$/, '') : '';
+    if (base) {
+      try {
+        var h = location.hostname;
+        if (/localhost|127\.0\.0\.1/.test(base) && h !== 'localhost' && h !== '127.0.0.1') base = '';
+      } catch (e) {}
+    }
+    if (base) return base;
+
+    try {
+      var host = location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:5290';
+      if (host === 'hacksexy.online' || host === '160.22.161.170') return location.origin;
+    } catch (e) {}
     return 'https://hacksexy.online';
   }
 
@@ -81,9 +91,12 @@
   }
 
   function boot() {
+    if (window.__WC_BOARD_BOOTED) return;
+    window.__WC_BOARD_BOOTED = true;
     var boards = document.querySelectorAll('#wc-fixture-board, [data-wc-board]');
     if (!boards.length) return;
     boards.forEach(function (board) {
+      if (board.getAttribute('data-wc-loaded') === '1') return;
       loadBoard(board);
       setInterval(function () { loadBoard(board); }, 5 * 60 * 1000);
     });

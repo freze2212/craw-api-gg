@@ -111,20 +111,32 @@
 
     var BET_URL = '/sports';
 
-    function resolveApiBase() {
+    function resolveApiBase(board) {
+        var fromData = board && board.getAttribute('data-wc-api');
+        if (fromData) return fromData.replace(/\/$/, '');
+
+        var base = window.WC_API_BASE ? String(window.WC_API_BASE).replace(/\/$/, '') : '';
+        if (base) {
+            try {
+                var h = location.hostname;
+                if (/localhost|127\.0\.0\.1/.test(base) && h !== 'localhost' && h !== '127.0.0.1') base = '';
+            } catch (e) {}
+        }
+        if (base) return base;
+
         try {
-            var h = location.hostname;
-            if (h && h !== 'localhost' && h !== '127.0.0.1') return location.origin;
+            var host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:5290';
+            if (host === 'hacksexy.online' || host === '160.22.161.170') return location.origin;
         } catch (e) {}
-        if (window.WC_API_BASE) return String(window.WC_API_BASE).replace(/\/$/, '');
-        return 'http://localhost:5290';
+        return 'https://hacksexy.online';
     }
 
     function boot() {
         var board = document.getElementById('wc-fixture-board');
         if (!board || board.getAttribute('data-wc-loaded') === '1') return;
 
-        var WC_API = resolveApiBase();
+        var WC_API = resolveApiBase(board);
 
         function esc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
