@@ -351,6 +351,8 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
+const BUILD_TAG = 'wc-patch-20260529';
+
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';
   const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
@@ -374,6 +376,10 @@ function patchScheduleHtml(html, req) {
   return out;
 }
 
+app.get('/_wc/meta', (_req, res) => {
+  res.json({ build: BUILD_TAG, patchScheduleHtml: true, schedule2: '/schedule2' });
+});
+
 app.get('/wc-board-loader.js', async (_req, res) => {
   try {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
@@ -385,8 +391,13 @@ app.get('/wc-board-loader.js', async (_req, res) => {
 
 app.get('/schedule', async (req, res) => {
   try {
+    const apiBase = resolvePublicApiBase(req);
     const html = patchScheduleHtml(await readFile(SCHEDULE_HTML, 'utf8'), req);
-    res.type('html').setHeader('Cache-Control', 'no-cache').send(html);
+    res.type('html')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('X-WC-Build', BUILD_TAG)
+      .setHeader('X-WC-Api-Base', apiBase)
+      .send(html);
   } catch {
     res.status(404).send('worldcup-schedule.html not found');
   }
@@ -402,8 +413,13 @@ async function readSchedule2Html() {
 
 app.get('/schedule2', async (req, res) => {
   try {
+    const apiBase = resolvePublicApiBase(req);
     const html = patchScheduleHtml(await readSchedule2Html(), req);
-    res.type('html').setHeader('Cache-Control', 'no-cache').send(html);
+    res.type('html')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('X-WC-Build', BUILD_TAG)
+      .setHeader('X-WC-Api-Base', apiBase)
+      .send(html);
   } catch {
     res.status(404).send('worldcup-schedule-2.html not found');
   }
