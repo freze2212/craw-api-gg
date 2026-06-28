@@ -1,5 +1,17 @@
+/** wc-board-loader v4 — no bet button */
 (function () {
   var boardTimers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
+  (function injectNoBetCss() {
+    if (document.getElementById('wc-no-bet-css')) return;
+    var s = document.createElement('style');
+    s.id = 'wc-no-bet-css';
+    s.textContent =
+      '.wc-bet-btn,.wc-bet-btn:hover{display:none!important;visibility:hidden!important;'
+      + 'height:0!important;width:0!important;padding:0!important;margin:0!important;'
+      + 'overflow:hidden!important;pointer-events:none!important}';
+    (document.head || document.documentElement).appendChild(s);
+  })();
 
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -35,9 +47,17 @@
       + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" loading="lazy" /><span>' + esc(m.away) + '</span></div>'
       + '</div>'
       + '<div class="wc-card-right">'
-      + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
+      + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span>'
+      + '<span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
       + '</div></div>'
     );
+  }
+
+  function stripBetButtons(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('.wc-bet-btn, a.wc-bet-btn').forEach(function (el) {
+      el.remove();
+    });
   }
 
   function renderBoard(board, fixtureDays) {
@@ -57,6 +77,7 @@
         + '</div>'
       );
     }).join('');
+    stripBetButtons(board);
     board.setAttribute('data-wc-loaded', '1');
   }
 
@@ -97,6 +118,7 @@
   function watchBoard(board) {
     if (board.getAttribute('data-wc-watching') === '1') return;
     board.setAttribute('data-wc-watching', '1');
+    stripBetButtons(board);
     loadBoard(board);
     var timer = setInterval(function () { loadBoard(board); }, 5 * 60 * 1000);
     if (boardTimers) boardTimers.set(board, timer);
@@ -106,10 +128,11 @@
     var boards = document.querySelectorAll('#wc-fixture-board, [data-wc-board]');
     if (!boards.length) return;
     boards.forEach(watchBoard);
+    document.querySelectorAll('.wc-bet-btn').forEach(function (el) { el.remove(); });
   }
 
   window.__WC_BOARD_BOOTED = true;
-  window.WCBoardLoader = { boot: boot, loadBoard: loadBoard };
+  window.WCBoardLoader = { boot: boot, loadBoard: loadBoard, version: '4-no-bet' };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

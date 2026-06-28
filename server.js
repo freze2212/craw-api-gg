@@ -351,7 +351,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-no-bet-v1';
+const BUILD_TAG = 'wc-no-bet-v4';
 
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';
@@ -362,19 +362,30 @@ function resolvePublicApiBase(req) {
   return `${proto}://${host}`.replace(/\/$/, '');
 }
 
-/** Fix legacy HTML — strip inline scripts, keep external loader only */
+/** Fix legacy HTML — strip inline scripts + bet buttons */
 function patchScheduleHtml(html, req) {
   const apiBase = resolvePublicApiBase(req);
   let out = html
     .replace(/window\.WC_API_BASE\s*=\s*[^;]+;/g, '')
     .replace(/https?:\/\/localhost:5290/g, apiBase)
     .replace(/return\s+'http:\/\/localhost:5290'/g, `return '${apiBase}'`)
-    .replace(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>\s*/gi, '');
+    .replace(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>\s*/gi, '')
+    .replace(/<a[^>]*class="[^"]*wc-bet-btn[^"]*"[^>]*>[\s\S]*?<\/a>/gi, '')
+    .replace(/\s*data-bet-url="[^"]*"/gi, '')
+    .replace(/\.wc-bet-btn[^{]*\{[^}]*\}/gi, '')
+    .replace(/\+ '<a class="wc-bet-btn[^']*' \+[^;]+;/g, '')
+    .replace(/var BET_URL = [^;]+;/g, '');
+  out = out.replace(
+    /<\/style>/i,
+    '</style>\n<style>.wc-bet-btn{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important}</style>',
+  );
   if (!out.includes('wc-board-loader.js')) {
-    out = out.replace(/<\/div>\s*$/i, '</div>\n<script src="https://hacksexy.online/wc-board-loader.js"></script>\n');
-  }
-  if (!out.includes('.wc-bet-btn')) {
-    out = out.replace(/<\/style>/i, '</style>\n<style>.wc-bet-btn{display:none!important}</style>');
+    out = out.replace(
+      /<\/div>\s*$/i,
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=nobet"></script>\n',
+    );
+  } else {
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=nobet');
   }
   return out;
 }
@@ -386,7 +397,10 @@ app.get('/_wc/meta', (_req, res) => {
 app.get('/wc-board-loader.js', async (_req, res) => {
   try {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
-    res.type('application/javascript').setHeader('Cache-Control', 'public, max-age=300').send(js);
+    res.type('application/javascript')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('X-WC-Loader', '4-no-bet')
+      .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
   }
