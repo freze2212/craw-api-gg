@@ -1,6 +1,48 @@
-/** wc-board-loader v4 — no bet button */
+/** wc-board-loader v4 — no bet button + iframe auto-height */
 (function () {
   var boardTimers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  var iframeResizeTimer = null;
+
+  function inIframe() {
+    try {
+      return window.parent !== window;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  (function injectIframeEmbedCss() {
+    if (!inIframe() || document.getElementById('wc-iframe-embed-css')) return;
+    var s = document.createElement('style');
+    s.id = 'wc-iframe-embed-css';
+    s.textContent =
+      'html,body{margin:0!important;padding:0!important;overflow:hidden!important;'
+      + 'min-height:auto!important;height:auto!important;}';
+    (document.head || document.documentElement).appendChild(s);
+  })();
+
+  function notifyIframeHeight() {
+    if (!inIframe()) return;
+    try {
+      var root = document.documentElement;
+      var body = document.body;
+      var h = Math.max(
+        root.scrollHeight,
+        root.offsetHeight,
+        body ? body.scrollHeight : 0,
+        body ? body.offsetHeight : 0,
+      );
+      window.parent.postMessage({ type: 'wc-iframe-resize', height: h }, '*');
+    } catch (e) {}
+  }
+
+  function scheduleIframeHeightNotify() {
+    if (!inIframe()) return;
+    if (iframeResizeTimer) clearTimeout(iframeResizeTimer);
+    iframeResizeTimer = setTimeout(notifyIframeHeight, 40);
+    setTimeout(notifyIframeHeight, 250);
+    setTimeout(notifyIframeHeight, 900);
+  }
 
   (function injectNoBetCss() {
     if (document.getElementById('wc-no-bet-css')) return;
@@ -65,6 +107,7 @@
     if (!fixtureDays || !fixtureDays.length) {
       board.innerHTML = '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
       board.setAttribute('data-wc-loaded', '1');
+      scheduleIframeHeightNotify();
       return;
     }
     board.innerHTML = fixtureDays.map(function (day) {
@@ -79,12 +122,14 @@
     }).join('');
     stripBetButtons(board);
     board.setAttribute('data-wc-loaded', '1');
+    scheduleIframeHeightNotify();
   }
 
   function showError(board, api, msg) {
     if (!board) return;
     board.innerHTML = '<div class="wc-board-error">' + esc(msg || ('Không tải được API (' + api + ')')) + '</div>';
     board.setAttribute('data-wc-loaded', 'error');
+    scheduleIframeHeightNotify();
   }
 
   function loadBoard(board) {
@@ -132,11 +177,27 @@
   }
 
   window.__WC_BOARD_BOOTED = true;
-  window.WCBoardLoader = { boot: boot, loadBoard: loadBoard, version: '4-no-bet' };
+  window.WCBoardLoader = {
+    boot: boot,
+    loadBoard: loadBoard,
+    notifyIframeHeight: notifyIframeHeight,
+    version: '5-iframe-resize',
+  };
+
+  if (inIframe()) {
+    window.addEventListener('load', scheduleIframeHeightNotify);
+    window.addEventListener('resize', scheduleIframeHeightNotify);
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        new ResizeObserver(scheduleIframeHeightNotify).observe(document.documentElement);
+      } catch (e) {}
+    }
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
     boot();
   }
+  scheduleIframeHeightNotify();
 })();

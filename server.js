@@ -364,7 +364,8 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-no-bet-v4';
+const BUILD_TAG = 'wc-rr-banner-v6';
+const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 
 function resolvePublicApiBase(req) {
   const host = req.get('host') || '';
@@ -395,10 +396,28 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=nobet"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe5"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=nobet');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe5');
+  }
+  return out;
+}
+
+/** RR88 /schedule2 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
+function patchSchedule2Html(html, req) {
+  let out = patchScheduleHtml(html, req);
+  if (!out.includes('wc-top-banner')) {
+    if (!out.includes('.wc-top-banner')) {
+      out = out.replace(
+        /<style type="text/css">/i,
+        '<style type="text/css">html,body{margin:0;padding:0}.wc-top-banner{width:100%;line-height:0}.wc-top-banner img{width:100%;height:auto;display:block}',
+      );
+    }
+    out = out.replace(
+      /<div class="content-html">/i,
+      '<div class="content-html"><div class="wc-top-banner"><img src="' + RR_TOP_BANNER + '" alt="Lịch thi đấu World Cup RR88" loading="eager" /></div>',
+    );
   }
   return out;
 }
@@ -412,7 +431,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '4-no-bet')
+      .setHeader('X-WC-Loader', '5-iframe-resize')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
@@ -450,7 +469,7 @@ async function readSchedule2Html() {
 app.get('/schedule2', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
-    const html = patchScheduleHtml(await readSchedule2Html(), req);
+    const html = patchSchedule2Html(await readSchedule2Html(), req);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
