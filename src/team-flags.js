@@ -98,13 +98,36 @@ const TEAM_ISO = {
   panama: 'pa',
   'trinidad và tobago': 'tt',
   uzbekistan: 'uz',
+  'cabo verde': 'cv',
+  'cape verde': 'cv',
+  algérie: 'dz',
+  algerie: 'dz',
+  'chdc congo': 'cd',
+  'congo dr': 'cd',
+  'democratic republic of the congo': 'cd',
+  sénégal: 'sn',
   'chưa xác định': '',
   tbd: '',
 };
 
+function normName(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 const GROUPS = 'ABCDEFGHIJKL'.split('');
 
 export const TBD_LABEL = 'Chưa xác định';
+
+/** Lookup đã chuẩn hóa (bỏ dấu) — tránh miss Pháp→phap vs key pháp */
+const TEAM_ISO_NORM = {};
+for (const [key, iso] of Object.entries(TEAM_ISO)) {
+  if (iso) TEAM_ISO_NORM[normName(key)] = iso;
+}
 
 /** Cờ placeholder giống widget Google (sọc xám) — fallback nếu scrape không lấy được URL */
 export const TBD_FLAG_FALLBACK =
@@ -116,15 +139,6 @@ export const TBD_FLAG_FALLBACK =
       '<rect y="36" width="80" height="8" fill="#bdc1c6"/>' +
       '</svg>',
   );
-
-function normName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
 
 export function isTbdTeam(teamName) {
   const n = normName(teamName);
@@ -138,9 +152,9 @@ export function displayTeamName(teamName) {
 export function resolveTeamIso(teamName) {
   if (isTbdTeam(teamName)) return '';
   const n = normName(teamName);
-  if (TEAM_ISO[n]) return TEAM_ISO[n];
-  for (const [key, iso] of Object.entries(TEAM_ISO)) {
-    if (n.includes(key) || key.includes(n)) return iso;
+  if (TEAM_ISO_NORM[n]) return TEAM_ISO_NORM[n];
+  for (const [key, iso] of Object.entries(TEAM_ISO_NORM)) {
+    if (key.length >= 3 && (n.includes(key) || key.includes(n))) return iso;
   }
   return '';
 }

@@ -130,7 +130,7 @@ function buildApiPayload(raw) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -509,7 +509,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 7 ||
+  cache.api.schemaVersion !== 8 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
