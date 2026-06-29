@@ -28,9 +28,12 @@ const TEST_HTML = path.join(__dirname, 'test.html');
 const CONFIG = {
   port: Number(process.env.PORT || 5290),
   cron: process.env.CRON_SCHEDULE || '*/5 * * * *',
-  googleUrl:
-    process.env.GOOGLE_SEARCH_URL ||
-    'https://www.google.com/search?q=s%C6%A1+%C4%91%E1%BB%93+thi+%C4%91%E1%BA%A5u+world+cup&hl=vi&gl=vn',
+  googleUrls: process.env.GOOGLE_SEARCH_URL
+    ? [process.env.GOOGLE_SEARCH_URL]
+    : [
+      'https://www.google.com/search?q=s%C6%A1+%C4%91%E1%BB%93+thi+%C4%91%E1%BA%A5u+world+cup&hl=vi&gl=vn',
+      'https://www.google.com/search?q=l%E1%BB%8Bch+thi+%C4%91%E1%BA%A5u+world+cup+2026&hl=vi&gl=vn',
+    ],
   headless: process.env.HEADLESS !== 'false',
   timeoutMs: Number(process.env.SCRAPE_TIMEOUT_MS || 45000),
 };
@@ -46,8 +49,40 @@ function dedupeLabel(text) {
   return t;
 }
 
+function vietnamDateParts(ref = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: 'numeric',
+    month: 'numeric',
+  }).formatToParts(ref);
+  const d = Number(parts.find((p) => p.type === 'day')?.value || 0);
+  const m = Number(parts.find((p) => p.type === 'month')?.value || 0);
+  return { d, m };
+}
+
+function formatDateSlash({ d, m }) {
+  return `${d}/${m}`;
+}
+
+function addDaysVN({ d, m }, days) {
+  const base = new Date(Date.UTC(2026, m - 1, d, 12, 0, 0));
+  base.setUTCDate(base.getUTCDate() + days);
+  return { d: base.getUTCDate(), m: base.getUTCMonth() + 1 };
+}
+
+function resolveRelativeDate(label, referenceDate = new Date()) {
+  const norm = String(label || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+  const today = vietnamDateParts(referenceDate);
+  if (norm.includes('hom nay')) return formatDateSlash(today);
+  if (norm.includes('ngay mai')) return formatDateSlash(addDaysVN(today, 1));
+  return null;
+}
+
 function parseTeamsBlob(blob) {
-  const s = blob.replace(/(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2}$/i, '').trim();
+  const s = blob
+    .replace(/(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2}$/i, '')
+    .replace(/(Ngày mai|Hôm nay)$/i, '')
+    .trim();
   const m = s.match(/^(.+?)\1(.+?)\2$/);
   if (m) return { home: dedupeLabel(m[1]), away: dedupeLabel(m[2]) };
   if (/chưa xác định/i.test(s)) {
@@ -58,19 +93,39 @@ function parseTeamsBlob(blob) {
   return { home: dedupeLabel(s), away: null };
 }
 
-function parseFixtureSnippet(text) {
-  const m = text.match(/^(Thứ \d+|CN),?\s*(\d{1,2}\/\d{1,2}),?\s*(\d{2}:\d{2})(.+)$/i);
-  if (!m) return null;
-  const teams = parseTeamsBlob(m[4]);
-  if (!teams.home) return null;
-  return {
-    kickoffLabel: `${m[1]}, ${m[2]}, ${m[3]}`,
-    date: m[2],
-    time: m[3],
-    home: teams.home,
-    away: teams.away || 'Chưa xác định',
-    status: teams.home === 'Chưa xác định' && teams.away === 'Chưa xác định' ? 'placeholder' : 'scheduled',
-  };
+function parseFixtureSnippet(text, referenceDate = new Date()) {
+  let m = text.match(/^(Thứ \d+|CN),?\s*(\d{1,2}\/\d{1,2}),?\s*(\d{2}:\d{2})(.+)$/i);
+  if (m) {
+    const teams = parseTeamsBlob(m[4]);
+    if (!teams.home) return null;
+    return {
+      kickoffLabel: `${m[1]}, ${m[2]}, ${m[3]}`,
+      date: m[2],
+      time: m[3],
+      home: teams.home,
+      away: teams.away || 'Chưa xác định',
+      status: teams.home === 'Chưa xác định' && teams.away === 'Chưa xác định' ? 'placeholder' : 'scheduled',
+    };
+  }
+
+  m = text.match(/^(Hôm nay|Ngày mai),?\s*(\d{2}:\d{2})(.+)$/i);
+  if (m) {
+    const date = resolveRelativeDate(m[1], referenceDate);
+    if (!date) return null;
+    const teams = parseTeamsBlob(m[3]);
+    if (!teams.home) return null;
+    const dayLabel = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    return {
+      kickoffLabel: `${dayLabel}, ${date}, ${m[2]}`,
+      date,
+      time: m[2],
+      home: teams.home,
+      away: teams.away || 'Chưa xác định',
+      status: teams.home === 'Chưa xác định' && teams.away === 'Chưa xác định' ? 'placeholder' : 'scheduled',
+    };
+  }
+
+  return null;
 }
 
 function normalizeKnockoutTables(groups) {
@@ -112,10 +167,11 @@ function shouldDropFixture(fx) {
 }
 
 function buildApiPayload(raw) {
+  const refDate = raw.updatedAt ? new Date(raw.updatedAt) : new Date();
   const rawFixtures = [];
   for (const sn of raw.rawSnippets || []) {
     if (sn.tag !== 'DIV') continue;
-    const fx = parseFixtureSnippet(sn.text);
+    const fx = parseFixtureSnippet(sn.text, refDate);
     if (fx) rawFixtures.push({ id: `fx-${rawFixtures.length + 1}`, ...fx });
   }
   const uniqueFixtures = dedupeFixtures(rawFixtures)
@@ -144,12 +200,12 @@ function buildApiPayload(raw) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
       provider: 'google-search',
-      url: raw.finalUrl || CONFIG.googleUrl,
+      url: raw.finalUrl || CONFIG.googleUrls[0],
       scrapeStatus: raw.status,
       durationMs: raw.durationMs,
     },
@@ -180,7 +236,10 @@ async function extractFromPage(page) {
 
     document.querySelectorAll('div').forEach((el) => {
       const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) && t.length < 220) {
+      const isDated =
+        /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) ||
+        /^(Hôm nay|Ngày mai),?\s*\d{2}:\d{2}/i.test(t);
+      if (isDated && t.length < 220) {
         rawSnippets.push({ tag: 'DIV', text: t });
       }
     });
@@ -231,29 +290,54 @@ async function scrapeGoogle() {
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       viewport: { width: 1400, height: 960 },
+      timezoneId: 'Asia/Ho_Chi_Minh',
     });
     const page = await context.newPage();
-    await page.goto(CONFIG.googleUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.timeoutMs });
-    await page.waitForTimeout(3500);
-    try {
-      await page.waitForSelector('table, .imso-hov, [data-sport]', { timeout: 15000 });
-    } catch {
-      /* partial */
+    const merged = {
+      rawSnippets: [],
+      groups: [],
+      matches: [],
+      tbdFlagUrl: '',
+      pageTitle: '',
+    };
+    const snippetSeen = new Set();
+    let finalUrl = CONFIG.googleUrls[0] || '';
+
+    for (const url of CONFIG.googleUrls) {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: CONFIG.timeoutMs });
+      await page.waitForTimeout(3500);
+      try {
+        await page.waitForSelector('table, .imso-hov, [data-sport]', { timeout: 12000 });
+      } catch {
+        /* partial */
+      }
+      const dom = await extractFromPage(page);
+      finalUrl = page.url();
+      if (dom.pageTitle) merged.pageTitle = dom.pageTitle;
+      if (dom.tbdFlagUrl && !merged.tbdFlagUrl) merged.tbdFlagUrl = dom.tbdFlagUrl;
+      for (const sn of dom.rawSnippets || []) {
+        if (!snippetSeen.has(sn.text)) {
+          snippetSeen.add(sn.text);
+          merged.rawSnippets.push(sn);
+        }
+      }
+      merged.groups.push(...(dom.groups || []));
+      merged.matches.push(...(dom.matches || []));
     }
-    const dom = await extractFromPage(page);
-    const finalUrl = page.url();
-    const status = dom.groups.length || dom.rawSnippets.length ? 'ok' : 'empty';
+
+    const status = merged.groups.length || merged.rawSnippets.length ? 'ok' : 'empty';
 
     return {
       status,
       durationMs: Date.now() - started,
-      pageTitle: dom.pageTitle,
+      pageTitle: merged.pageTitle,
       finalUrl,
-      ...dom,
+      ...merged,
       meta: {
-        snippetCount: dom.rawSnippets.length,
-        tableCount: dom.groups.length,
-        matchCount: dom.matches.length,
+        snippetCount: merged.rawSnippets.length,
+        tableCount: merged.groups.length,
+        matchCount: merged.matches.length,
+        scrapeUrls: CONFIG.googleUrls.length,
       },
     };
   } finally {
@@ -354,7 +438,7 @@ app.get('/api/v1/worldcup/status', async (_req, res) => {
       cron: CONFIG.cron,
       jobRunning,
       lastError,
-      sourceUrl: CONFIG.googleUrl,
+      sourceUrl: CONFIG.googleUrls[0],
     },
   });
 });
@@ -677,7 +761,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 9 ||
+  cache.api.schemaVersion !== 10 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
