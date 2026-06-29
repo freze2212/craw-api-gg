@@ -140,6 +140,13 @@ export const TBD_FLAG_FALLBACK =
       '</svg>',
   );
 
+export function teamsMatch(a, b) {
+  const na = normName(displayTeamName(a));
+  const nb = normName(displayTeamName(b));
+  if (!na || !nb) return false;
+  return na === nb || (na.length >= 3 && nb.length >= 3 && (na.includes(nb) || nb.includes(na)));
+}
+
 export function isTbdTeam(teamName) {
   const n = normName(teamName);
   return !n || n === 'tbd' || n.includes('chua xac dinh') || n.includes('to be determined');

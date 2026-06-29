@@ -13,7 +13,8 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright';
-import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName, isTbdTeam } from './src/team-flags.js';
+import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName, isTbdTeam, teamsMatch } from './src/team-flags.js';
+import { compareFixturesByKickoff } from './src/tournament-rounds.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -166,7 +167,150 @@ function shouldDropFixture(fx) {
   return m === 7 && d >= 12;
 }
 
-function buildApiPayload(raw) {
+function scoreLookupKey(home, away, date = '') {
+  return [displayTeamName(home), displayTeamName(away), date || ''].join('|').toLowerCase();
+}
+
+function buildScoreMap(raw, fixtures) {
+  const map = new Map();
+
+  const put = (home, away, homeScore, awayScore, date = '') => {
+    if (homeScore == null || awayScore == null) return;
+    const hs = String(homeScore).trim();
+    const as = String(awayScore).trim();
+    if (!/^\d+$/.test(hs) || !/^\d+$/.test(as)) return;
+    const entry = { homeScore: hs, awayScore: as };
+    map.set(scoreLookupKey(home, away, date), entry);
+    map.set(scoreLookupKey(home, away, ''), entry);
+  };
+
+  for (const g of raw.groups || []) {
+    if (!g.rows || g.rows.length !== 2) continue;
+    const home = dedupeLabel(g.rows[0][0]);
+    const away = dedupeLabel(g.rows[1][0]);
+    const hs = g.rows[0][1];
+    const as = g.rows[1][1];
+    if (!hs || !as) continue;
+    const fx = fixtures.find((f) => teamsMatch(f.home, home) && teamsMatch(f.away, away));
+    put(home, away, hs, as, fx?.date || '');
+  }
+
+  for (const m of raw.matches || []) {
+    const parsed = parseScoreSummary(m.summary || '');
+    if (parsed) put(parsed.home, parsed.away, parsed.homeScore, parsed.awayScore, parsed.date || '');
+  }
+
+  for (const sn of raw.rawSnippets || []) {
+    if (sn.tag !== 'DIV') continue;
+    const parsed = parseScoredFixtureSnippet(sn.text);
+    if (parsed) put(parsed.home, parsed.away, parsed.homeScore, parsed.awayScore, parsed.date || '');
+  }
+
+  return map;
+}
+
+function parseScoreSummary(text) {
+  const scoreM = String(text || '').match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (!scoreM) return null;
+  const dateM = text.match(/(\d{1,2}\/\d{1,2})/);
+  const date = dateM ? dateM[1] : '';
+  const before = text.split(scoreM[0])[0] || '';
+  const teams = before.match(/([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ\s.'-]{1,40})/g);
+  if (!teams || teams.length < 2) return null;
+  const home = dedupeLabel(teams[teams.length - 2]);
+  const away = dedupeLabel(teams[teams.length - 1]);
+  if (!home || !away) return null;
+  return { home, away, date, homeScore: scoreM[1], awayScore: scoreM[2] };
+}
+
+function parseScoredFixtureSnippet(text) {
+  const m = String(text || '').match(
+    /^(Thứ \d+|CN),?\s*(\d{1,2}\/\d{1,2}),?\s*(\d{2}:\d{2})(.+)$/i,
+  );
+  if (!m) return null;
+  const tail = m[4];
+  const scoreM = tail.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (!scoreM) return null;
+  const teamsPart = tail.split(scoreM[0])[0];
+  const teams = parseTeamsBlob(teamsPart);
+  if (!teams.home) return null;
+  return {
+    date: m[2],
+    home: teams.home,
+    away: teams.away || 'Chưa xác định',
+    homeScore: scoreM[1],
+    awayScore: scoreM[2],
+  };
+}
+
+function applyScores(fx, scoreMap) {
+  const keys = [scoreLookupKey(fx.home, fx.away, fx.date), scoreLookupKey(fx.home, fx.away, '')];
+  for (const k of keys) {
+    const s = scoreMap.get(k);
+    if (!s) continue;
+    return {
+      ...fx,
+      homeScore: s.homeScore,
+      awayScore: s.awayScore,
+      scoreDisplay: `${s.homeScore} - ${s.awayScore}`,
+      status: 'finished',
+    };
+  }
+  return fx;
+}
+
+function kickoffMsVN(fx) {
+  const [d, m] = String(fx.date || '').split('/').map(Number);
+  const [hh, mm] = String(fx.time || '00:00').split(':').map(Number);
+  if (!d || !m) return 0;
+  return Date.UTC(2026, m - 1, d, (hh || 0) - 7, mm || 0);
+}
+
+function finalizeFixtureStatus(fx) {
+  if (fx.homeScore != null && fx.awayScore != null) {
+    return { ...fx, status: 'finished', scoreDisplay: fx.scoreDisplay || `${fx.homeScore} - ${fx.awayScore}` };
+  }
+  const kickoff = kickoffMsVN(fx);
+  const now = Date.now();
+  if (kickoff && now > kickoff + 2.5 * 60 * 60 * 1000) {
+    return { ...fx, status: fx.status === 'scheduled' ? 'finished' : (fx.status || 'finished') };
+  }
+  return { ...fx, status: fx.status || 'scheduled' };
+}
+
+function mergeFixtureScores(cur, prev) {
+  if (cur.homeScore == null && prev.homeScore != null) {
+    return {
+      ...cur,
+      homeScore: prev.homeScore,
+      awayScore: prev.awayScore,
+      scoreDisplay: prev.scoreDisplay || `${prev.homeScore} - ${prev.awayScore}`,
+      status: 'finished',
+    };
+  }
+  return cur;
+}
+
+/** Google bỏ trận đã đá — giữ lại từ cache cũ + cập nhật tỉ số */
+function mergeWithPreviousFixtures(current, previous, scoreMap) {
+  const map = new Map();
+  for (const fx of current) {
+    const merged = finalizeFixtureStatus(applyScores({ ...fx }, scoreMap));
+    map.set(fixtureKey(merged), merged);
+  }
+  for (const prev of previous) {
+    const key = fixtureKey(prev);
+    if (map.has(key)) {
+      map.set(key, finalizeFixtureStatus(mergeFixtureScores(map.get(key), prev)));
+      continue;
+    }
+    const kept = finalizeFixtureStatus(applyScores({ ...prev }, scoreMap));
+    map.set(key, kept);
+  }
+  return [...map.values()].sort(compareFixturesByKickoff);
+}
+
+function buildApiPayload(raw, previousFixtures = []) {
   const refDate = raw.updatedAt ? new Date(raw.updatedAt) : new Date();
   const rawFixtures = [];
   for (const sn of raw.rawSnippets || []) {
@@ -177,9 +321,12 @@ function buildApiPayload(raw) {
   const uniqueFixtures = dedupeFixtures(rawFixtures)
     .filter((fx) => !shouldDropFixture(fx))
     .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
+  const scoreMap = buildScoreMap(raw, uniqueFixtures);
+  const mergedFixtures = mergeWithPreviousFixtures(uniqueFixtures, previousFixtures, scoreMap)
+    .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
   const flagOpts = { tbdFlagUrl: raw.tbdFlagUrl || '' };
-  const fixtures = uniqueFixtures.map((f, i) => enrichFixture(f, i, flagOpts));
-  const fixtureDays = groupFixturesByDate(uniqueFixtures, flagOpts);
+  const fixtures = mergedFixtures.map((f, i) => enrichFixture(f, i, flagOpts));
+  const fixtureDays = groupFixturesByDate(mergedFixtures, flagOpts);
 
   const knockout = normalizeKnockoutTables(raw.groups || []).map((k, i) => ({
     ...k,
@@ -200,7 +347,7 @@ function buildApiPayload(raw) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 10,
+    schemaVersion: 11,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -239,7 +386,9 @@ async function extractFromPage(page) {
       const isDated =
         /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) ||
         /^(Hôm nay|Ngày mai),?\s*\d{2}:\d{2}/i.test(t);
-      if (isDated && t.length < 220) {
+      const isScored =
+        /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) && /\d+\s*[-–]\s*\d+/.test(t);
+      if ((isDated || isScored) && t.length < 280) {
         rawSnippets.push({ tag: 'DIV', text: t });
       }
     });
@@ -364,7 +513,14 @@ async function loadCache() {
 
 async function saveCache(raw) {
   await fs.mkdir(DATA_DIR, { recursive: true });
-  const api = buildApiPayload({ ...raw, updatedAt: new Date().toISOString() });
+  let previousFixtures = [];
+  try {
+    const prev = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
+    previousFixtures = prev?.api?.fixtures || [];
+  } catch {
+    /* no prior cache */
+  }
+  const api = buildApiPayload({ ...raw, updatedAt: new Date().toISOString() }, previousFixtures);
   const payload = {
     ...raw,
     updatedAt: api.updatedAt,
@@ -530,10 +686,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe7"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe8"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe7');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe8');
   }
   return out;
 }
@@ -620,7 +776,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '7-iframe-scroll')
+      .setHeader('X-WC-Loader', '8-scores')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
@@ -763,7 +919,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 10 ||
+  cache.api.schemaVersion !== 11 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
