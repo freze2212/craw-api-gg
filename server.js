@@ -647,15 +647,17 @@ function allowIframeEmbed(res) {
 app.get('/schedule', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
+    const embedHeight = await getEmbedHeight();
     const html = patchScheduleHtml(await readFile(SCHEDULE_HTML, 'utf8'), req);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
       .setHeader('X-WC-Build', BUILD_TAG)
       .setHeader('X-WC-Api-Base', apiBase)
+      .setHeader('X-WC-Embed-Height', String(embedHeight))
       .send(html);
   } catch {
-    res.status(404).send('worldcup-schedule.html not found');
+    res.status(404).send('worldcup-schedule-mm.html not found');
   }
 });
 
