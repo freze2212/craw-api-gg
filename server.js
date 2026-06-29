@@ -925,9 +925,6 @@ const needsApiRebuild =
 if (needsApiRebuild) {
   await saveCache(cache);
 }
-if (!cache?.api?.fixtures?.length) {
-  await runSync('boot');
-}
 
 if (cron.validate(CONFIG.cron)) {
   cron.schedule(CONFIG.cron, () => runSync('cron'));
@@ -945,3 +942,7 @@ app.listen(CONFIG.port, () => {
   console.log(`  Refresh   POST http://localhost:${CONFIG.port}/api/v1/worldcup/refresh`);
   console.log('');
 });
+
+if (!cache?.api?.fixtures?.length) {
+  runSync('boot').catch((err) => console.error('[wc-api] boot sync:', err?.message || err));
+}
