@@ -721,7 +721,6 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
 
 const BUILD_TAG = 'wc-noscript-embed-v19';
 const MM_BANNER_PATH = '/assets/mm-banner.png';
-const MM_BANNER_IBB = 'https://i.ibb.co/vx21WzWT/l-ch-thi-u-WC-mm88-pc-29.png';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
