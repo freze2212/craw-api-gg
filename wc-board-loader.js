@@ -61,9 +61,7 @@
     s.id = 'wc-layout-css';
     s.textContent =
       '.wc-card-left{justify-content:center!important}'
-      + '.wc-group{display:none!important}'
-      + '.wc-top-banner--mm{position:relative;width:100%!important;max-width:100%!important;margin:0;padding:0;overflow:hidden;line-height:0;aspect-ratio:1920/520}'
-      + '.wc-top-banner--mm img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover!important;object-position:center center;display:block}';
+      + '.wc-group{display:none!important}';
     (document.head || document.documentElement).appendChild(s);
   })();
 
@@ -212,7 +210,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '12-banner-cover',
+    version: '13-banner-simple',
   };
 
   if (inIframe()) {
