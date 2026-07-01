@@ -802,10 +802,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe10"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe11"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe10');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe11');
   }
   return out;
 }
@@ -816,7 +816,7 @@ function injectTopBanner(html, bannerUrl, alt) {
     if (!out.includes('.wc-top-banner')) {
       out = out.replace(
         '<style type="text/css">',
-        '<style type="text/css">html,body{margin:0;padding:0;overflow:visible!important;height:auto!important;min-height:0!important;overscroll-behavior:none}.wc-top-banner{width:100%;line-height:0}.wc-top-banner img{width:100%;height:auto;display:block}',
+        '<style type="text/css">html,body{margin:0;padding:0;overflow:visible!important;height:auto!important;min-height:0!important;overscroll-behavior:none}.wc-top-banner{width:100%;max-width:100%;margin:0;padding:0;line-height:0;font-size:0;overflow:hidden}.wc-top-banner img{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;display:block;object-fit:contain;object-position:center top}',
       );
     }
     out = out.replace(
@@ -931,7 +931,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '10-layout-gift')
+      .setHeader('X-WC-Loader', '11-banner-fit')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');

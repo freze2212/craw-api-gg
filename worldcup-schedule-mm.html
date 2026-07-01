@@ -15,8 +15,15 @@
     -webkit-overflow-scrolling: auto;
   }
     .content-html { font-family: 'Roboto', sans-serif; }
-    .wc-top-banner { width: 100%; line-height: 0; }
-    .wc-top-banner img { width: 100%; height: auto; display: block; }
+    .wc-top-banner {
+        width: 100%; max-width: 100%; margin: 0; padding: 0;
+        line-height: 0; font-size: 0; overflow: hidden;
+    }
+    .wc-top-banner img {
+        width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important;
+        display: block; object-fit: contain; object-position: center top;
+    }
     .brand-header { width: 100%; }
     .brand-header-item-1 {
         text-align: center; font-family: 'Roboto', Times, serif; font-size: 28px;
@@ -155,6 +162,6 @@
 </div>
 </div>
 
-<script src="https://hacksexy.online/wc-board-loader.js?v=iframe10"></script>
+<script src="https://hacksexy.online/wc-board-loader.js?v=iframe11"></script>
 </body>
 </html>
