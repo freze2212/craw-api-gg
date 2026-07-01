@@ -55,6 +55,17 @@
     setTimeout(notifyIframeHeight, 900);
   }
 
+  (function injectBannerFixCss() {
+    if (document.getElementById('wc-banner-fix-css')) return;
+    var s = document.createElement('style');
+    s.id = 'wc-banner-fix-css';
+    s.textContent =
+      'html,body,.content-html{max-width:100%;overflow-x:hidden;box-sizing:border-box}'
+      + '.wc-top-banner,.wc-top-banner--mm{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important;aspect-ratio:unset!important}'
+      + '.wc-top-banner img,.wc-top-banner--mm img{display:block!important;max-width:100%!important;width:auto!important;height:auto!important;margin:0 auto!important;position:static!important;object-fit:unset!important;transform:none!important;aspect-ratio:unset!important}';
+    (document.head || document.documentElement).appendChild(s);
+  })();
+
   (function injectLayoutCss() {
     if (document.getElementById('wc-layout-css')) return;
     var s = document.createElement('style');
@@ -210,7 +221,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '13-banner-simple',
+    version: '14-banner-maxwidth',
   };
 
   if (inIframe()) {

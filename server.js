@@ -719,7 +719,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v15';
+const BUILD_TAG = 'wc-noscript-embed-v16';
 const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
@@ -802,31 +802,43 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe13"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe14"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe13');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe14');
   }
   return out;
 }
 
+const BANNER_FIX_ID = 'wc-banner-fix-css';
 const TOP_BANNER_CSS =
-  '.wc-top-banner{width:100%;margin:0;padding:0;line-height:0}'
-  + '.wc-top-banner img{width:100%;height:auto;display:block;max-width:100%}';
+  'html,body,.content-html{max-width:100%;overflow-x:hidden;box-sizing:border-box}'
+  + '.wc-top-banner,.wc-top-banner--mm{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;line-height:0!important;overflow:hidden!important;box-sizing:border-box!important;aspect-ratio:unset!important;position:relative!important}'
+  + '.wc-top-banner img,.wc-top-banner--mm img{display:block!important;max-width:100%!important;width:auto!important;height:auto!important;margin:0 auto!important;position:static!important;inset:auto!important;object-fit:unset!important;transform:none!important;aspect-ratio:unset!important}';
 
 function hasTopBannerDiv(html) {
   return /<div[^>]*class="[^"]*wc-top-banner/i.test(html);
 }
 
+function applyBannerCssFix(html) {
+  const block = `<style id="${BANNER_FIX_ID}">${TOP_BANNER_CSS}</style>`;
+  const re = new RegExp(`<style id="${BANNER_FIX_ID}"[^>]*>[\\s\\S]*?<\\/style>`, 'i');
+  if (re.test(html)) return html.replace(re, block);
+  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${block}</head>`);
+  return html.replace(/<\/style>/i, `</style>${block}`);
+}
+
+function sanitizeLegacyBanner(html) {
+  return html.replace(/\swc-top-banner--mm/g, '');
+}
+
 function injectTopBanner(html, bannerUrl, alt) {
-  let out = html;
-  if (!out.includes('.wc-top-banner img{width:100%;height:auto')) {
-    out = out.replace(/<\/style>/i, `</style>\n<style type="text/css">${TOP_BANNER_CSS}</style>`);
-  }
+  let out = sanitizeLegacyBanner(html);
+  out = applyBannerCssFix(out);
   if (!hasTopBannerDiv(out)) {
     out = out.replace(
       '<div class="content-html">',
-      `<div class="content-html"><div class="wc-top-banner"><img src="${bannerUrl}" alt="${alt}" loading="eager" /></div>`,
+      `<div class="content-html"><div class="wc-top-banner"><img src="${bannerUrl}" alt="${alt}" loading="eager" decoding="async" /></div>`,
     );
   }
   return out;
@@ -936,7 +948,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '13-banner-simple')
+      .setHeader('X-WC-Loader', '14-banner-maxwidth')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');

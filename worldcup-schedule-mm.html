@@ -14,9 +14,14 @@
     overscroll-behavior: none;
     -webkit-overflow-scrolling: auto;
   }
-    .content-html { font-family: 'Roboto', sans-serif; }
-    .wc-top-banner { width: 100%; margin: 0; padding: 0; line-height: 0; }
-    .wc-top-banner img { width: 100%; height: auto; display: block; max-width: 100%; }
+    .content-html { font-family: 'Roboto', sans-serif; max-width: 100%; overflow-x: hidden; box-sizing: border-box; }
+    .wc-top-banner {
+        width: 100%; max-width: 100%; margin: 0; padding: 0;
+        line-height: 0; overflow: hidden; box-sizing: border-box;
+    }
+    .wc-top-banner img {
+        display: block; max-width: 100%; width: auto; height: auto; margin: 0 auto;
+    }
     .brand-header { width: 100%; }
     .brand-header-item-1 {
         text-align: center; font-family: 'Roboto', Times, serif; font-size: 28px;
@@ -135,7 +140,7 @@
 </div>
 <div class="content-html">
 <div class="wc-top-banner">
-<img src="https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg" alt="Lịch thi đấu World Cup MM88" loading="eager" />
+<img src="https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg" alt="Lịch thi đấu World Cup MM88" loading="eager" decoding="async" />
 </div>
 <div class="brand-header">
 <p>&nbsp;</p>
@@ -155,6 +160,6 @@
 </div>
 </div>
 
-<script src="https://hacksexy.online/wc-board-loader.js?v=iframe13"></script>
+<script src="https://hacksexy.online/wc-board-loader.js?v=iframe14"></script>
 </body>
 </html>
