@@ -719,7 +719,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v13';
+const BUILD_TAG = 'wc-noscript-embed-v14';
 const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
@@ -802,32 +802,44 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe11"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe12"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe11');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe12');
   }
   return out;
 }
 
-const TOP_BANNER_CSS =
-  '.wc-top-banner{width:100%;max-width:100%;margin:0;padding:0;line-height:0;font-size:0;overflow:hidden}'
-  + '.wc-top-banner img{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;display:block;object-fit:contain;object-position:center top}';
+const TOP_BANNER_CSS_MM =
+  '.wc-top-banner--mm{position:relative;width:100%;max-width:100%;margin:0;padding:0;overflow:hidden;line-height:0;aspect-ratio:1920/520}'
+  + '.wc-top-banner--mm img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block}';
+
+const TOP_BANNER_CSS_RR =
+  '.wc-top-banner:not(.wc-top-banner--mm){width:100%;max-width:100%;margin:0;padding:0;line-height:0;overflow:hidden}'
+  + '.wc-top-banner:not(.wc-top-banner--mm) img{width:100%;height:auto;display:block}';
 
 function hasTopBannerDiv(html) {
   return /<div[^>]*class="[^"]*wc-top-banner/i.test(html);
 }
 
-function injectTopBanner(html, bannerUrl, alt) {
+function injectTopBanner(html, bannerUrl, alt, variant = 'rr') {
+  const isMm = variant === 'mm';
+  const bannerClass = isMm ? 'wc-top-banner wc-top-banner--mm' : 'wc-top-banner';
+  const bannerCss = isMm ? TOP_BANNER_CSS_MM : TOP_BANNER_CSS_RR;
+  const cssMarker = isMm ? 'wc-top-banner--mm' : 'wc-top-banner:not(.wc-top-banner--mm)';
+
   let out = html;
-  if (!out.includes('object-fit:contain')) {
-    out = out.replace(/<\/style>/i, `</style>\n<style type="text/css">${TOP_BANNER_CSS}</style>`);
+  if (!out.includes(cssMarker)) {
+    out = out.replace(/<\/style>/i, `</style>\n<style type="text/css">${bannerCss}</style>`);
   }
   if (!hasTopBannerDiv(out)) {
     out = out.replace(
       '<div class="content-html">',
-      `<div class="content-html"><div class="wc-top-banner"><img src="${bannerUrl}" alt="${alt}" loading="eager" /></div>`,
+      `<div class="content-html"><div class="${bannerClass}"><img src="${bannerUrl}" alt="${alt}" loading="eager" /></div>`,
     );
+  } else if (isMm) {
+    out = out.replace(/<div class="wc-top-banner">/g, `<div class="${bannerClass}">`);
+    out = out.replace(/<div class="wc-top-banner\s+wc-top-banner--mm">/g, `<div class="${bannerClass}">`);
   }
   return out;
 }
@@ -862,7 +874,7 @@ function injectGiftFall(html) {
 /** MM88 /schedule — banner + hiệu ứng quà rơi */
 function patchSchedule1Html(html, req) {
   let out = patchScheduleHtml(html, req);
-  out = injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88');
+  out = injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88', 'mm');
   return injectGiftFall(out);
 }
 
@@ -936,7 +948,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '11-banner-fit')
+      .setHeader('X-WC-Loader', '12-banner-cover')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');

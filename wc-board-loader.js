@@ -62,8 +62,8 @@
     s.textContent =
       '.wc-card-left{justify-content:center!important}'
       + '.wc-group{display:none!important}'
-      + '.wc-top-banner{width:100%!important;max-width:100%!important;margin:0;padding:0;line-height:0;font-size:0;overflow:hidden}'
-      + '.wc-top-banner img{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;display:block;object-fit:contain;object-position:center top}';
+      + '.wc-top-banner--mm{position:relative;width:100%!important;max-width:100%!important;margin:0;padding:0;overflow:hidden;line-height:0;aspect-ratio:1920/520}'
+      + '.wc-top-banner--mm img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover!important;object-position:center center;display:block}';
     (document.head || document.documentElement).appendChild(s);
   })();
 
@@ -212,7 +212,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '11-banner-fit',
+    version: '12-banner-cover',
   };
 
   if (inIframe()) {
