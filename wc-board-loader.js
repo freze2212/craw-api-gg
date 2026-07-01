@@ -60,9 +60,10 @@
     var s = document.createElement('style');
     s.id = 'wc-banner-fix-css';
     s.textContent =
-      'html,body,.content-html{max-width:100%;overflow-x:hidden;box-sizing:border-box}'
-      + '.wc-top-banner,.wc-top-banner--mm{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important;aspect-ratio:unset!important}'
-      + '.wc-top-banner img,.wc-top-banner--mm img{display:block!important;max-width:100%!important;width:auto!important;height:auto!important;margin:0 auto!important;position:static!important;object-fit:unset!important;transform:none!important;aspect-ratio:unset!important}';
+      'html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;box-sizing:border-box}'
+      + '.content-html{width:100%;max-width:100%;margin:0;padding:0;box-sizing:border-box}'
+      + '.wc-top-banner,.wc-top-banner--mm{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important}'
+      + '.wc-top-banner img,.wc-top-banner--mm img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;margin:0!important;position:static!important;object-fit:unset!important;transform:none!important;aspect-ratio:unset!important}';
     (document.head || document.documentElement).appendChild(s);
   })();
 
@@ -221,7 +222,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '14-banner-maxwidth',
+    version: '15-banner-fullwidth',
   };
 
   if (inIframe()) {
