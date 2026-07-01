@@ -719,8 +719,8 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v17';
-const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
+const BUILD_TAG = 'wc-noscript-embed-v18';
+const MM_BANNER_PATH = '/assets/mm-banner.jpg';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
@@ -833,13 +833,23 @@ function sanitizeLegacyBanner(html) {
   return html.replace(/\swc-top-banner--mm/g, '');
 }
 
+function resolveBannerUrl(req, assetPath) {
+  return `${resolvePublicApiBase(req)}${assetPath}`;
+}
+
 function injectTopBanner(html, bannerUrl, alt) {
   let out = sanitizeLegacyBanner(html);
+  out = out.replace(/https:\/\/i\.ibb\.co\/WWSnXKXM[^"']*/g, bannerUrl);
   out = applyBannerCssFix(out);
   if (!hasTopBannerDiv(out)) {
     out = out.replace(
       '<div class="content-html">',
       `<div class="content-html"><div class="wc-top-banner"><img src="${bannerUrl}" alt="${alt}" loading="eager" decoding="async" /></div>`,
+    );
+  } else {
+    out = out.replace(
+      /(<div[^>]*class="[^"]*wc-top-banner[^"]*"[^>]*>\s*<img[^>]*\ssrc=")[^"]+/i,
+      `$1${bannerUrl}`,
     );
   }
   return out;
@@ -875,7 +885,7 @@ function injectGiftFall(html) {
 /** MM88 /schedule — banner + hiệu ứng quà rơi */
 function patchSchedule1Html(html, req) {
   let out = patchScheduleHtml(html, req);
-  out = injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88');
+  out = injectTopBanner(out, resolveBannerUrl(req, MM_BANNER_PATH), 'Lịch thi đấu World Cup MM88');
   return injectGiftFall(out);
 }
 
@@ -942,6 +952,18 @@ p{color:#444;line-height:1.5}</style></head><body>
 <p>Chiều cao tự tính: <strong>${h}px</strong> — copy toàn bộ ô dưới:</p>
 <textarea readonly onclick="this.select()">${esc}</textarea>
 </body></html>`);
+});
+
+app.get('/assets/mm-banner.jpg', async (_req, res) => {
+  try {
+    const file = path.join(__dirname, 'assets', 'mm-banner.jpg');
+    const buf = await readFile(file);
+    res.type('image/jpeg')
+      .setHeader('Cache-Control', 'public, max-age=604800')
+      .send(buf);
+  } catch {
+    res.status(404).send('mm-banner.jpg not found');
+  }
 });
 
 app.get('/wc-board-loader.js', async (_req, res) => {
