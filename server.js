@@ -132,13 +132,25 @@ function parseFixtureSnippet(text, referenceDate = new Date()) {
 function normalizeKnockoutTables(groups) {
   return groups
     .filter((g) => g.rows?.length === 2 && g.rows.every((r) => r.length >= 1))
-    .map((g, i) => ({
-      id: `ko-${i + 1}`,
-      home: dedupeLabel(g.rows[0][0]),
-      away: dedupeLabel(g.rows[1][0]),
-      homeScore: g.rows[0][1] || null,
-      awayScore: g.rows[1][1] || null,
-    }))
+    .map((g, i) => {
+      const home = dedupeLabel(g.rows[0][0]);
+      const away = dedupeLabel(g.rows[1][0]);
+      const parsed = scoresFromKnockoutCells(g.rows[0][1], g.rows[1][1]);
+      const base = {
+        id: `ko-${i + 1}`,
+        home,
+        away,
+        homeScore: parsed?.homeScore || g.rows[0][1] || null,
+        awayScore: parsed?.awayScore || g.rows[1][1] || null,
+      };
+      if (parsed?.wentToPenalties) {
+        base.penHome = parsed.penHome;
+        base.penAway = parsed.penAway;
+        base.penDisplay = `(${parsed.penHome} - ${parsed.penAway} pen)`;
+        base.wentToPenalties = true;
+      }
+      return base;
+    })
     .filter((m) => m.home || m.away);
 }
 
@@ -167,6 +179,89 @@ function shouldDropFixture(fx) {
   return m === 7 && d >= 12;
 }
 
+const PEN_KEYWORD_RE = /pen|pens|pk|luân\s*lưu|luan\s*luu|sút\s*luân/i;
+
+function parseTableScoreCell(cell) {
+  const s = String(cell || '').trim();
+  if (!s) return null;
+  const penCell = s.match(/^(\d+)\s*\(\s*(\d+)\s*\)$/);
+  if (penCell) return { ft: penCell[1], pen: penCell[2] };
+  if (/^\d+$/.test(s)) return { ft: s };
+  const parsed = parseMatchScores(s);
+  if (!parsed?.homeScore || parsed.awayScore == null) return null;
+  return {
+    ft: parsed.homeScore,
+    pen: parsed.penHome,
+    awayFt: parsed.awayScore,
+    awayPen: parsed.penAway,
+  };
+}
+
+function scoresFromKnockoutCells(homeCell, awayCell) {
+  const h = parseTableScoreCell(homeCell);
+  const a = parseTableScoreCell(awayCell);
+  if (!h?.ft || !a?.ft) return null;
+  const out = { homeScore: h.ft, awayScore: a.ft };
+  if (h.pen && a.pen) {
+    out.penHome = h.pen;
+    out.penAway = a.pen;
+    out.wentToPenalties = true;
+  }
+  return out;
+}
+
+/** FT + optional penalty shootout từ text Google (vd. 1-1 (4-3 pen)) */
+function parseMatchScores(text) {
+  const raw = String(text || '');
+  if (!raw) return null;
+
+  const ftParenPen = raw.match(/(\d+)\s*[-–]\s*(\d+)\s*\(\s*(\d+)\s*[-–]\s*(\d+)\s*\)/);
+  if (ftParenPen) {
+    return {
+      homeScore: ftParenPen[1],
+      awayScore: ftParenPen[2],
+      penHome: ftParenPen[3],
+      penAway: ftParenPen[4],
+      wentToPenalties: true,
+    };
+  }
+
+  if (PEN_KEYWORD_RE.test(raw)) {
+    const pairs = [...raw.matchAll(/(\d+)\s*[-–]\s*(\d+)/g)];
+    if (pairs.length >= 2) {
+      return {
+        homeScore: pairs[0][1],
+        awayScore: pairs[0][2],
+        penHome: pairs[1][1],
+        penAway: pairs[1][2],
+        wentToPenalties: true,
+      };
+    }
+  }
+
+  const single = raw.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (single) return { homeScore: single[1], awayScore: single[2] };
+  return null;
+}
+
+function attachScoreFields(fx, scores) {
+  if (!scores?.homeScore || scores.awayScore == null) return fx;
+  const out = {
+    ...fx,
+    homeScore: String(scores.homeScore),
+    awayScore: String(scores.awayScore),
+    scoreDisplay: `${scores.homeScore} - ${scores.awayScore}`,
+    status: 'finished',
+  };
+  if (scores.wentToPenalties && scores.penHome != null && scores.penAway != null) {
+    out.penHome = String(scores.penHome);
+    out.penAway = String(scores.penAway);
+    out.penDisplay = `(${scores.penHome} - ${scores.penAway} pen)`;
+    out.wentToPenalties = true;
+  }
+  return out;
+}
+
 function scoreLookupKey(home, away, date = '') {
   return [displayTeamName(home), displayTeamName(away), date || ''].join('|').toLowerCase();
 }
@@ -174,12 +269,22 @@ function scoreLookupKey(home, away, date = '') {
 function buildScoreMap(raw, fixtures) {
   const map = new Map();
 
-  const put = (home, away, homeScore, awayScore, date = '') => {
-    if (homeScore == null || awayScore == null) return;
-    const hs = String(homeScore).trim();
-    const as = String(awayScore).trim();
+  const put = (home, away, scores, date = '') => {
+    if (!scores?.homeScore || scores.awayScore == null) return;
+    const hs = String(scores.homeScore).trim();
+    const as = String(scores.awayScore).trim();
     if (!/^\d+$/.test(hs) || !/^\d+$/.test(as)) return;
-    const entry = { homeScore: hs, awayScore: as };
+    const entry = {
+      homeScore: hs,
+      awayScore: as,
+      scoreDisplay: `${hs} - ${as}`,
+    };
+    if (scores.wentToPenalties && scores.penHome != null && scores.penAway != null) {
+      entry.penHome = String(scores.penHome);
+      entry.penAway = String(scores.penAway);
+      entry.penDisplay = `(${scores.penHome} - ${scores.penAway} pen)`;
+      entry.wentToPenalties = true;
+    }
     map.set(scoreLookupKey(home, away, date), entry);
     map.set(scoreLookupKey(home, away, ''), entry);
   };
@@ -190,37 +295,41 @@ function buildScoreMap(raw, fixtures) {
     const away = dedupeLabel(g.rows[1][0]);
     const hs = g.rows[0][1];
     const as = g.rows[1][1];
-    if (!hs || !as) continue;
+    if (!hs && !as) continue;
+    const parsed = scoresFromKnockoutCells(hs, as) || parseMatchScores(`${hs} - ${as}`);
+    if (!parsed) continue;
     const fx = fixtures.find((f) => teamsMatch(f.home, home) && teamsMatch(f.away, away));
-    put(home, away, hs, as, fx?.date || '');
+    put(home, away, parsed, fx?.date || '');
   }
 
   for (const m of raw.matches || []) {
     const parsed = parseScoreSummary(m.summary || '');
-    if (parsed) put(parsed.home, parsed.away, parsed.homeScore, parsed.awayScore, parsed.date || '');
+    if (parsed) put(parsed.home, parsed.away, parsed, parsed.date || '');
   }
 
   for (const sn of raw.rawSnippets || []) {
     if (sn.tag !== 'DIV') continue;
     const parsed = parseScoredFixtureSnippet(sn.text);
-    if (parsed) put(parsed.home, parsed.away, parsed.homeScore, parsed.awayScore, parsed.date || '');
+    if (parsed) put(parsed.home, parsed.away, parsed, parsed.date || '');
   }
 
   return map;
 }
 
 function parseScoreSummary(text) {
-  const scoreM = String(text || '').match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (!scoreM) return null;
-  const dateM = text.match(/(\d{1,2}\/\d{1,2})/);
+  const raw = String(text || '');
+  const scores = parseMatchScores(raw);
+  if (!scores) return null;
+  const dateM = raw.match(/(\d{1,2}\/\d{1,2})/);
   const date = dateM ? dateM[1] : '';
-  const before = text.split(scoreM[0])[0] || '';
+  const firstScore = raw.match(/(\d+)\s*[-–]\s*(\d+)/);
+  const before = firstScore ? raw.split(firstScore[0])[0] || '' : raw;
   const teams = before.match(/([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ\s.'-]{1,40})/g);
   if (!teams || teams.length < 2) return null;
   const home = dedupeLabel(teams[teams.length - 2]);
   const away = dedupeLabel(teams[teams.length - 1]);
   if (!home || !away) return null;
-  return { home, away, date, homeScore: scoreM[1], awayScore: scoreM[2] };
+  return { home, away, date, ...scores };
 }
 
 function parseScoredFixtureSnippet(text) {
@@ -228,18 +337,17 @@ function parseScoredFixtureSnippet(text) {
     /^(Thứ \d+|CN),?\s*(\d{1,2}\/\d{1,2}),?\s*(\d{2}:\d{2})(.+)$/i,
   );
   if (!m) return null;
-  const tail = m[4];
-  const scoreM = tail.match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (!scoreM) return null;
-  const teamsPart = tail.split(scoreM[0])[0];
+  const scores = parseMatchScores(m[4]);
+  if (!scores) return null;
+  const firstScore = m[4].match(/(\d+)\s*[-–]\s*(\d+)/);
+  const teamsPart = firstScore ? m[4].split(firstScore[0])[0] : m[4];
   const teams = parseTeamsBlob(teamsPart);
   if (!teams.home) return null;
   return {
     date: m[2],
     home: teams.home,
     away: teams.away || 'Chưa xác định',
-    homeScore: scoreM[1],
-    awayScore: scoreM[2],
+    ...scores,
   };
 }
 
@@ -248,13 +356,7 @@ function applyScores(fx, scoreMap) {
   for (const k of keys) {
     const s = scoreMap.get(k);
     if (!s) continue;
-    return {
-      ...fx,
-      homeScore: s.homeScore,
-      awayScore: s.awayScore,
-      scoreDisplay: `${s.homeScore} - ${s.awayScore}`,
-      status: 'finished',
-    };
+    return attachScoreFields(fx, s);
   }
   return fx;
 }
@@ -268,7 +370,15 @@ function kickoffMsVN(fx) {
 
 function finalizeFixtureStatus(fx) {
   if (fx.homeScore != null && fx.awayScore != null) {
-    return { ...fx, status: 'finished', scoreDisplay: fx.scoreDisplay || `${fx.homeScore} - ${fx.awayScore}` };
+    const out = {
+      ...fx,
+      status: 'finished',
+      scoreDisplay: fx.scoreDisplay || `${fx.homeScore} - ${fx.awayScore}`,
+    };
+    if (fx.wentToPenalties && fx.penHome != null && fx.penAway != null) {
+      out.penDisplay = fx.penDisplay || `(${fx.penHome} - ${fx.penAway} pen)`;
+    }
+    return out;
   }
   const kickoff = kickoffMsVN(fx);
   const now = Date.now();
@@ -280,12 +390,15 @@ function finalizeFixtureStatus(fx) {
 
 function mergeFixtureScores(cur, prev) {
   if (cur.homeScore == null && prev.homeScore != null) {
+    return attachScoreFields(cur, prev);
+  }
+  if (cur.homeScore != null && cur.penHome == null && prev.penHome != null) {
     return {
       ...cur,
-      homeScore: prev.homeScore,
-      awayScore: prev.awayScore,
-      scoreDisplay: prev.scoreDisplay || `${prev.homeScore} - ${prev.awayScore}`,
-      status: 'finished',
+      penHome: prev.penHome,
+      penAway: prev.penAway,
+      penDisplay: prev.penDisplay,
+      wentToPenalties: true,
     };
   }
   return cur;
@@ -347,7 +460,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 11,
+    schemaVersion: 12,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -387,8 +500,9 @@ async function extractFromPage(page) {
         /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) ||
         /^(Hôm nay|Ngày mai),?\s*\d{2}:\d{2}/i.test(t);
       const isScored =
-        /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t) && /\d+\s*[-–]\s*\d+/.test(t);
-      if ((isDated || isScored) && t.length < 280) {
+        /^(Thứ \d+|CN),?\s*\d{1,2}\/\d{1,2},?\s*\d{2}:\d{2}/.test(t)
+        && (/\d+\s*[-–]\s*\d+/.test(t) || /pen|pens|pk|luân\s*lưu|luan\s*luu|sút\s*luân/i.test(t));
+      if ((isDated || isScored) && t.length < 320) {
         rawSnippets.push({ tag: 'DIV', text: t });
       }
     });
@@ -605,7 +719,8 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v10';
+const BUILD_TAG = 'wc-noscript-embed-v11';
+const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
 
@@ -686,17 +801,16 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe8"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe9"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe8');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe9');
   }
   return out;
 }
 
-/** RR88 /schedule2 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
-function patchSchedule2Html(html, req) {
-  let out = patchScheduleHtml(html, req);
+function injectTopBanner(html, bannerUrl, alt) {
+  let out = html;
   if (!out.includes('wc-top-banner')) {
     if (!out.includes('.wc-top-banner')) {
       out = out.replace(
@@ -706,10 +820,22 @@ function patchSchedule2Html(html, req) {
     }
     out = out.replace(
       '<div class="content-html">',
-      '<div class="content-html"><div class="wc-top-banner"><img src="' + RR_TOP_BANNER + '" alt="Lịch thi đấu World Cup RR88" loading="eager" /></div>',
+      '<div class="content-html"><div class="wc-top-banner"><img src="' + bannerUrl + '" alt="' + alt + '" loading="eager" /></div>',
     );
   }
   return out;
+}
+
+/** MM88 /schedule — banner trên cùng */
+function patchSchedule1Html(html, req) {
+  let out = patchScheduleHtml(html, req);
+  return injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88');
+}
+
+/** RR88 /schedule2 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
+function patchSchedule2Html(html, req) {
+  let out = patchScheduleHtml(html, req);
+  return injectTopBanner(out, RR_TOP_BANNER, 'Lịch thi đấu World Cup RR88');
 }
 
 app.get('/_wc/meta', async (_req, res) => {
@@ -776,7 +902,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '8-scores')
+      .setHeader('X-WC-Loader', '9-pen-scores')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
@@ -804,7 +930,7 @@ app.get('/schedule', async (req, res) => {
   try {
     const apiBase = resolvePublicApiBase(req);
     const embedHeight = await getEmbedHeight();
-    const html = patchScheduleHtml(await readFile(SCHEDULE_HTML, 'utf8'), req);
+    const html = patchSchedule1Html(await readFile(SCHEDULE_HTML, 'utf8'), req);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
@@ -919,7 +1045,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 11 ||
+  cache.api.schemaVersion !== 12 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {

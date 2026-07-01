@@ -2,6 +2,7 @@ import {
   inferRound,
   sectionTitleForRound,
   compareFixturesByKickoff,
+  isGroupStageRound,
 } from './tournament-rounds.js';
 
 /** Map tên đội (VI/EN từ Google) → ISO 3166-1 alpha-2 cho flagcdn */
@@ -185,7 +186,7 @@ export function enrichFixture(fx, index, options = {}) {
     home: displayTeamName(fx.home),
     away: displayTeamName(fx.away),
     round,
-    group: `Bảng ${groupLetter}`,
+    group: isGroupStageRound(round) ? `Bảng ${groupLetter}` : '',
     homeFlag: flagUrlForTeam(fx.home, tbdFlag),
     awayFlag: flagUrlForTeam(fx.away, tbdFlag),
     dateDisplay,

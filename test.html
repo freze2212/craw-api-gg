@@ -65,6 +65,10 @@
     .wc-datetime { text-align: center; color: #006719; font-weight: 700; line-height: 1.35; }
     .wc-datetime .d { font-size: 14px; display: block; }
     .wc-datetime .t { font-size: 14px; display: block; }
+    .wc-score { text-align: center; color: #006719; font-weight: 800; line-height: 1.3; }
+    .wc-score-val { font-size: 20px; display: block; letter-spacing: 1px; }
+    .wc-pen-val { font-size: 12px; display: block; font-weight: 700; opacity: 0.9; margin-top: 2px; }
+    .wc-score-lbl { font-size: 11px; display: block; opacity: 0.75; font-weight: 700; }
     .wc-bet-btn { display: none !important; }
     .wc-board-empty, .wc-board-error {
         text-align: center; padding: 24px; color: #006719; font-weight: 600;
@@ -134,16 +138,24 @@
     }
 
     function cardHtml(m) {
-        return '<div class="wc-match-card">'
+        var finished = m.status === 'finished' || (m.homeScore != null && m.awayScore != null);
+        var penLine = (m.penHome != null && m.penAway != null)
+            ? '<span class="wc-pen-val">(' + esc(m.penHome) + ' - ' + esc(m.penAway) + ' pen)</span>'
+            : '';
+        var groupLine = m.group
+            ? '<div class="wc-group">' + esc(m.group) + '</div>'
+            : '';
+        var right = finished && m.homeScore != null && m.awayScore != null
+            ? '<div class="wc-score"><span class="wc-score-val">' + esc(m.homeScore) + ' - ' + esc(m.awayScore) + '</span>'
+                + penLine + '<span class="wc-score-lbl">FT</span></div>'
+            : '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>';
+        return '<div class="wc-match-card' + (finished ? ' wc-finished' : '') + '">'
             + '<div class="wc-card-left">'
-            + '<div class="wc-group">' + esc(m.group) + '</div>'
+            + groupLine
             + '<div class="wc-team"><img src="' + esc(m.homeFlag) + '" alt="" /><span>' + esc(m.home) + '</span></div>'
             + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" /><span>' + esc(m.away) + '</span></div>'
             + '</div>'
-            + '<div class="wc-card-right">'
-            + '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span><span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>'
-            + '<a class="wc-bet-btn" href="' + BET_URL + '">Cược ngay</a>'
-            + '</div></div>';
+            + '<div class="wc-card-right">' + right + '</div></div>';
     }
 
     function renderBoard(fixtureDays) {

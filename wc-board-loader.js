@@ -93,15 +93,22 @@
 
   function cardHtml(m) {
     var finished = m.status === 'finished' || (m.homeScore != null && m.awayScore != null);
+    var penLine = (m.penHome != null && m.penAway != null)
+      ? '<span class="wc-pen-val">(' + esc(m.penHome) + ' - ' + esc(m.penAway) + ' pen)</span>'
+      : '';
+    var groupLine = m.group
+      ? '<div class="wc-group">' + esc(m.group) + '</div>'
+      : '';
     var right = finished && m.homeScore != null && m.awayScore != null
       ? '<div class="wc-score"><span class="wc-score-val">' + esc(m.homeScore) + ' - ' + esc(m.awayScore) + '</span>'
+        + penLine
         + '<span class="wc-score-lbl">FT</span></div>'
       : '<div class="wc-datetime"><span class="d">' + esc(m.dateDisplay || m.date) + '</span>'
         + '<span class="t">' + esc(m.timeDisplay || m.time) + '</span></div>';
     return (
       '<div class="wc-match-card' + (finished ? ' wc-finished' : '') + '">'
       + '<div class="wc-card-left">'
-      + '<div class="wc-group">' + esc(m.group) + '</div>'
+      + groupLine
       + '<div class="wc-team"><img src="' + esc(m.homeFlag) + '" alt="" loading="lazy" /><span>' + esc(m.home) + '</span></div>'
       + '<div class="wc-team"><img src="' + esc(m.awayFlag) + '" alt="" loading="lazy" /><span>' + esc(m.away) + '</span></div>'
       + '</div>'
@@ -195,7 +202,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '8-scores',
+    version: '9-pen-scores',
   };
 
   if (inIframe()) {
