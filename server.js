@@ -14,7 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright';
 import { enrichFixture, groupFixturesByDate, flagUrlForTeam, displayTeamName, isTbdTeam, teamsMatch } from './src/team-flags.js';
-import { compareFixturesByKickoff } from './src/tournament-rounds.js';
+import { compareFixturesByKickoff, inferRound } from './src/tournament-rounds.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -172,11 +172,50 @@ function isPlaceholderFixture(fx) {
   return fx.status === 'placeholder' || (isTbdTeam(fx.home) && isTbdTeam(fx.away));
 }
 
-/** Bỏ slot placeholder cuối sơ đồ GG (12/7+) — không phải lịch Vòng 16 thật */
+const ROUND_RANK = { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, third: 5, final: 6 };
+
+function roundRank(round) {
+  return ROUND_RANK[round] ?? 0;
+}
+
+function normTeamKey(name) {
+  return displayTeamName(name).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+/** Bỏ slot placeholder sơ đồ bracket (Vòng 16+) — không phải lịch thi đấu thật */
 function shouldDropFixture(fx) {
   if (!isPlaceholderFixture(fx)) return false;
-  const [d, m] = String(fx.date || '').split('/').map(Number);
-  return m === 7 && d >= 12;
+  return roundRank(inferRound(fx.date)) >= roundRank('r16');
+}
+
+/**
+ * Chỉ hiển thị trận knock-out khi đủ 2 đội và không còn trận vòng trước chưa kết thúc.
+ * Tránh Vòng 16 hiện Canada vs TBD / slot rỗng khi Đức–Paraguay (Vòng 32) chưa đá xong.
+ */
+function filterFixturesForDisplay(fixtures) {
+  const visible = fixtures.filter((fx) => {
+    if (isPlaceholderFixture(fx)) return false;
+    const round = inferRound(fx.date);
+    if (round !== 'group' && (isTbdTeam(fx.home) || isTbdTeam(fx.away))) return false;
+    return true;
+  });
+
+  const blockedTeams = new Set();
+  for (const fx of visible) {
+    if (inferRound(fx.date) !== 'r32') continue;
+    if (fx.status === 'finished' || (fx.homeScore != null && fx.awayScore != null)) continue;
+    if (isTbdTeam(fx.home) || isTbdTeam(fx.away)) continue;
+    blockedTeams.add(normTeamKey(fx.home));
+    blockedTeams.add(normTeamKey(fx.away));
+  }
+
+  return visible.filter((fx) => {
+    const round = inferRound(fx.date);
+    if (roundRank(round) < roundRank('r16')) return true;
+    const home = normTeamKey(fx.home);
+    const away = normTeamKey(fx.away);
+    return !blockedTeams.has(home) && !blockedTeams.has(away);
+  });
 }
 
 const PEN_KEYWORD_RE = /pen|pens|pk|luân\s*lưu|luan\s*luu|sút\s*luân/i;
@@ -435,11 +474,12 @@ function buildApiPayload(raw, previousFixtures = []) {
     .filter((fx) => !shouldDropFixture(fx))
     .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
   const scoreMap = buildScoreMap(raw, uniqueFixtures);
-  const mergedFixtures = mergeWithPreviousFixtures(uniqueFixtures, previousFixtures, scoreMap)
+  const mergedFixtures = mergeWithPreviousFixtures(uniqueFixtures, previousFixtures, scoreMap);
+  const displayFixtures = filterFixturesForDisplay(mergedFixtures)
     .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
   const flagOpts = { tbdFlagUrl: raw.tbdFlagUrl || '' };
-  const fixtures = mergedFixtures.map((f, i) => enrichFixture(f, i, flagOpts));
-  const fixtureDays = groupFixturesByDate(mergedFixtures, flagOpts);
+  const fixtures = displayFixtures.map((f, i) => enrichFixture(f, i, flagOpts));
+  const fixtureDays = groupFixturesByDate(displayFixtures, flagOpts);
 
   const knockout = normalizeKnockoutTables(raw.groups || []).map((k, i) => ({
     ...k,
@@ -460,7 +500,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 13,
+    schemaVersion: 14,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -719,7 +759,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v19';
+const BUILD_TAG = 'wc-noscript-embed-v20';
 const MM_BANNER_PATH = '/assets/mm-banner.png';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
@@ -1119,7 +1159,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 13 ||
+  cache.api.schemaVersion !== 14 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
