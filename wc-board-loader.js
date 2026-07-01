@@ -55,6 +55,16 @@
     setTimeout(notifyIframeHeight, 900);
   }
 
+  (function injectLayoutCss() {
+    if (document.getElementById('wc-layout-css')) return;
+    var s = document.createElement('style');
+    s.id = 'wc-layout-css';
+    s.textContent =
+      '.wc-card-left{justify-content:center!important}'
+      + '.wc-group{display:none!important}';
+    (document.head || document.documentElement).appendChild(s);
+  })();
+
   (function injectNoBetCss() {
     if (document.getElementById('wc-no-bet-css')) return;
     var s = document.createElement('style');
@@ -96,9 +106,7 @@
     var penLine = (m.penHome != null && m.penAway != null)
       ? '<span class="wc-pen-val">(' + esc(m.penHome) + ' - ' + esc(m.penAway) + ' pen)</span>'
       : '';
-    var groupLine = m.group
-      ? '<div class="wc-group">' + esc(m.group) + '</div>'
-      : '';
+    var groupLine = '';
     var right = finished && m.homeScore != null && m.awayScore != null
       ? '<div class="wc-score"><span class="wc-score-val">' + esc(m.homeScore) + ' - ' + esc(m.awayScore) + '</span>'
         + penLine
@@ -202,7 +210,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '9-pen-scores',
+    version: '10-layout-gift',
   };
 
   if (inIframe()) {

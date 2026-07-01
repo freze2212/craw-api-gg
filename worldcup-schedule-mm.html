@@ -68,9 +68,9 @@
     .wc-card-left {
         flex: 1; padding: 12px 12px 12px 14px;
         border-right: 1px solid rgba(255, 26, 26, 0.15);
-        display: flex; flex-direction: column; justify-content: flex-start; gap: 7px;
+        display: flex; flex-direction: column; justify-content: center; gap: 7px;
     }
-    .wc-group { font-size: 14px; font-weight: 700; color: #ff1a1a; line-height: 1.2; }
+    .wc-group { display: none !important; }
     .wc-team {
         display: flex; align-items: center; gap: 8px;
         font-size: 14px; font-weight: 700; color: #cc0000; line-height: 1.2;
@@ -97,6 +97,28 @@
     .wc-board-error { color: #c62828; }
     .wc-bet-btn { display: none !important; }
 
+    .gift-fall-container {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; overflow: hidden; z-index: 9999;
+    }
+    .gift {
+        position: absolute; top: -100px; width: 70px; height: 70px;
+        opacity: 0.9; animation: giftFall 7s linear infinite;
+    }
+    .gift-1 { left: 1%; animation-delay: 0s; }
+    .gift-2 { left: 32%; animation-delay: 1s; }
+    .gift-3 { left: 48%; animation-delay: 2s; }
+    .gift-4 { left: 64%; animation-delay: 3s; }
+    .gift-5 { left: 80%; animation-delay: 4s; }
+    @keyframes giftFall {
+        0% { transform: translateY(-120px) rotate(0deg); opacity: 1; }
+        70% { opacity: 1; }
+        100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+    @media (max-width: 640px) {
+        .gift { width: 50px; height: 50px; }
+    }
+
     @media (max-width: 640px) {
         .wc-match-grid { grid-template-columns: 1fr; }
         .tab-btn-active { padding: 10px 16px; font-size: 12px; }
@@ -104,6 +126,13 @@
 </style>
 </head>
 <body>
+<div class="gift-fall-container" aria-hidden="true">
+<img class="gift gift-1" src="https://i.imgur.com/hixxXa9.gif" alt="" loading="lazy" />
+<img class="gift gift-2" src="https://i.imgur.com/hixxXa9.gif" alt="" loading="lazy" />
+<img class="gift gift-3" src="https://i.imgur.com/hixxXa9.gif" alt="" loading="lazy" />
+<img class="gift gift-4" src="https://i.imgur.com/hixxXa9.gif" alt="" loading="lazy" />
+<img class="gift gift-5" src="https://i.imgur.com/hixxXa9.gif" alt="" loading="lazy" />
+</div>
 <div class="content-html">
 <div class="wc-top-banner">
 <img src="https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg" alt="Lịch thi đấu World Cup MM88" loading="eager" />
@@ -126,6 +155,6 @@
 </div>
 </div>
 
-<script src="https://hacksexy.online/wc-board-loader.js?v=iframe9"></script>
+<script src="https://hacksexy.online/wc-board-loader.js?v=iframe10"></script>
 </body>
 </html>

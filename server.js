@@ -460,7 +460,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 12,
+    schemaVersion: 13,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -719,8 +719,9 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v11';
+const BUILD_TAG = 'wc-noscript-embed-v12';
 const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
+const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
 
@@ -801,10 +802,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe9"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe10"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe9');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe10');
   }
   return out;
 }
@@ -826,10 +827,38 @@ function injectTopBanner(html, bannerUrl, alt) {
   return out;
 }
 
-/** MM88 /schedule — banner trên cùng */
+function injectGiftFall(html) {
+  if (html.includes('gift-fall-container')) return html;
+  const giftCss =
+    '.gift-fall-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:9999}'
+    + '.gift{position:absolute;top:-100px;width:70px;height:70px;opacity:.9;animation:giftFall 7s linear infinite}'
+    + '.gift-1{left:1%;animation-delay:0s}.gift-2{left:32%;animation-delay:1s}.gift-3{left:48%;animation-delay:2s}'
+    + '.gift-4{left:64%;animation-delay:3s}.gift-5{left:80%;animation-delay:4s}'
+    + '@keyframes giftFall{0%{transform:translateY(-120px) rotate(0deg);opacity:1}70%{opacity:1}100%{transform:translateY(100vh) rotate(360deg);opacity:0}}'
+    + '@media(max-width:640px){.gift{width:50px;height:50px}}'
+    + '.wc-card-left{justify-content:center!important}.wc-group{display:none!important}';
+  let out = html.replace(/<\/style>/i, '</style>\n<style type="text/css">' + giftCss + '</style>');
+  const giftHtml =
+    '<div class="gift-fall-container" aria-hidden="true">'
+    + `<img class="gift gift-1" src="${MM_GIFT_IMG}" alt="" loading="lazy" />`
+    + `<img class="gift gift-2" src="${MM_GIFT_IMG}" alt="" loading="lazy" />`
+    + `<img class="gift gift-3" src="${MM_GIFT_IMG}" alt="" loading="lazy" />`
+    + `<img class="gift gift-4" src="${MM_GIFT_IMG}" alt="" loading="lazy" />`
+    + `<img class="gift gift-5" src="${MM_GIFT_IMG}" alt="" loading="lazy" />`
+    + '</div>';
+  if (/<body[^>]*>/i.test(out)) {
+    out = out.replace(/<body([^>]*)>/i, '<body$1>' + giftHtml);
+  } else {
+    out = giftHtml + out;
+  }
+  return out;
+}
+
+/** MM88 /schedule — banner + hiệu ứng quà rơi */
 function patchSchedule1Html(html, req) {
   let out = patchScheduleHtml(html, req);
-  return injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88');
+  out = injectTopBanner(out, MM_TOP_BANNER, 'Lịch thi đấu World Cup MM88');
+  return injectGiftFall(out);
 }
 
 /** RR88 /schedule2 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
@@ -902,7 +931,7 @@ app.get('/wc-board-loader.js', async (_req, res) => {
     const js = await readFile(BOARD_LOADER_JS, 'utf8');
     res.type('application/javascript')
       .setHeader('Cache-Control', 'no-cache')
-      .setHeader('X-WC-Loader', '9-pen-scores')
+      .setHeader('X-WC-Loader', '10-layout-gift')
       .send(js);
   } catch {
     res.status(404).send('// wc-board-loader.js not found');
@@ -1045,7 +1074,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 12 ||
+  cache.api.schemaVersion !== 13 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {

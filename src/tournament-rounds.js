@@ -60,9 +60,6 @@ export function inferRound(dateStr) {
   return 'group';
 }
 
-export function isGroupStageRound(round) {
-  return round === 'group';
-}
 
 export function sectionTitleForRound(round, dateStr) {
   const label = ROUND_LABELS[round] || ROUND_LABELS.group;

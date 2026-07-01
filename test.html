@@ -47,9 +47,9 @@
     }
     .wc-card-left {
         flex: 1; padding: 12px 12px 12px 14px; border-right: 1px solid #c5e6ce;
-        display: flex; flex-direction: column; justify-content: flex-start; gap: 7px;
+        display: flex; flex-direction: column; justify-content: center; gap: 7px;
     }
-    .wc-group { font-size: 14px; font-weight: 700; color: #006719; line-height: 1.2; }
+    .wc-group { display: none !important; }
     .wc-team {
         display: flex; align-items: center; gap: 8px;
         font-size: 14px; font-weight: 700; color: #006719; line-height: 1.2;
@@ -142,9 +142,7 @@
         var penLine = (m.penHome != null && m.penAway != null)
             ? '<span class="wc-pen-val">(' + esc(m.penHome) + ' - ' + esc(m.penAway) + ' pen)</span>'
             : '';
-        var groupLine = m.group
-            ? '<div class="wc-group">' + esc(m.group) + '</div>'
-            : '';
+        var groupLine = '';
         var right = finished && m.homeScore != null && m.awayScore != null
             ? '<div class="wc-score"><span class="wc-score-val">' + esc(m.homeScore) + ' - ' + esc(m.awayScore) + '</span>'
                 + penLine + '<span class="wc-score-lbl">FT</span></div>'
