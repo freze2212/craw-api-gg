@@ -47,11 +47,12 @@ echo ""
 echo "==> Verify production:"
 curl -sI "https://hacksexy.online/schedule2" | grep -iE 'x-wc|http' || true
 echo ""
-curl -s "https://hacksexy.online/schedule2" | grep -m1 'wc-top-banner' && echo "OK: có banner" || echo "FAIL: chưa có wc-top-banner"
+curl -s "https://hacksexy.online/schedule2" | grep -m1 '<div class="wc-top-banner">' && echo "OK: RR88 có banner div" || echo "FAIL: RR88 chưa có banner div"
+curl -s "https://hacksexy.online/schedule" | grep -m1 '<div class="wc-top-banner">' && echo "OK: MM88 có banner div" || echo "FAIL: MM88 chưa có banner div"
 curl -s "https://hacksexy.online/_wc/meta" || true
 echo ""
 
-if curl -s "https://hacksexy.online/schedule2" | grep -q 'wc-top-banner'; then
+if curl -s "https://hacksexy.online/schedule2" | grep -q '<div class="wc-top-banner">'; then
   exit 0
 fi
 

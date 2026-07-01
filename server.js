@@ -719,7 +719,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v12';
+const BUILD_TAG = 'wc-noscript-embed-v13';
 const MM_TOP_BANNER = 'https://i.ibb.co/WWSnXKXM/l-ch-thi-u-WC-mm88-pc-29.jpg';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
@@ -810,18 +810,23 @@ function patchScheduleHtml(html, req) {
   return out;
 }
 
+const TOP_BANNER_CSS =
+  '.wc-top-banner{width:100%;max-width:100%;margin:0;padding:0;line-height:0;font-size:0;overflow:hidden}'
+  + '.wc-top-banner img{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;display:block;object-fit:contain;object-position:center top}';
+
+function hasTopBannerDiv(html) {
+  return /<div[^>]*class="[^"]*wc-top-banner/i.test(html);
+}
+
 function injectTopBanner(html, bannerUrl, alt) {
   let out = html;
-  if (!out.includes('wc-top-banner')) {
-    if (!out.includes('.wc-top-banner')) {
-      out = out.replace(
-        '<style type="text/css">',
-        '<style type="text/css">html,body{margin:0;padding:0;overflow:visible!important;height:auto!important;min-height:0!important;overscroll-behavior:none}.wc-top-banner{width:100%;max-width:100%;margin:0;padding:0;line-height:0;font-size:0;overflow:hidden}.wc-top-banner img{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;display:block;object-fit:contain;object-position:center top}',
-      );
-    }
+  if (!out.includes('object-fit:contain')) {
+    out = out.replace(/<\/style>/i, `</style>\n<style type="text/css">${TOP_BANNER_CSS}</style>`);
+  }
+  if (!hasTopBannerDiv(out)) {
     out = out.replace(
       '<div class="content-html">',
-      '<div class="content-html"><div class="wc-top-banner"><img src="' + bannerUrl + '" alt="' + alt + '" loading="eager" /></div>',
+      `<div class="content-html"><div class="wc-top-banner"><img src="${bannerUrl}" alt="${alt}" loading="eager" /></div>`,
     );
   }
   return out;
