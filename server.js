@@ -719,8 +719,9 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
   res.json({ success: result.ok !== false, result, data: c.api });
 });
 
-const BUILD_TAG = 'wc-noscript-embed-v18';
-const MM_BANNER_PATH = '/assets/mm-banner.jpg';
+const BUILD_TAG = 'wc-noscript-embed-v19';
+const MM_BANNER_PATH = '/assets/mm-banner.png';
+const MM_BANNER_IBB = 'https://i.ibb.co/vx21WzWT/l-ch-thi-u-WC-mm88-pc-29.png';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
@@ -839,7 +840,8 @@ function resolveBannerUrl(req, assetPath) {
 
 function injectTopBanner(html, bannerUrl, alt) {
   let out = sanitizeLegacyBanner(html);
-  out = out.replace(/https:\/\/i\.ibb\.co\/WWSnXKXM[^"']*/g, bannerUrl);
+  out = out.replace(/https:\/\/i\.ibb\.co\/(?:WWSnXKXM|vx21WzWT)[^"']*/g, bannerUrl);
+  out = out.replace(/https:\/\/hacksexy\.online\/assets\/mm-banner\.(?:jpg|png)/g, bannerUrl);
   out = applyBannerCssFix(out);
   if (!hasTopBannerDiv(out)) {
     out = out.replace(
@@ -954,16 +956,20 @@ p{color:#444;line-height:1.5}</style></head><body>
 </body></html>`);
 });
 
-app.get('/assets/mm-banner.jpg', async (_req, res) => {
+app.get('/assets/mm-banner.png', async (_req, res) => {
   try {
-    const file = path.join(__dirname, 'assets', 'mm-banner.jpg');
+    const file = path.join(__dirname, 'assets', 'mm-banner.png');
     const buf = await readFile(file);
-    res.type('image/jpeg')
+    res.type('image/png')
       .setHeader('Cache-Control', 'public, max-age=604800')
       .send(buf);
   } catch {
-    res.status(404).send('mm-banner.jpg not found');
+    res.status(404).send('mm-banner.png not found');
   }
+});
+
+app.get('/assets/mm-banner.jpg', async (_req, res) => {
+  res.redirect(301, '/assets/mm-banner.png');
 });
 
 app.get('/wc-board-loader.js', async (_req, res) => {
