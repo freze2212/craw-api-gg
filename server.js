@@ -158,6 +158,29 @@ function fixtureKey(fx) {
   return [fx.date, fx.time, fx.home, fx.away].join('|').toLowerCase();
 }
 
+/** Cùng ngày + cùng cặp đội — Google/cache đôi khi lệch giờ kickoff (vd. Mexico–Ecuador 08:00 vs 09:00) */
+function sameMatchDayKey(fx) {
+  return [fx.date, normTeamKey(fx.home), normTeamKey(fx.away)].join('|');
+}
+
+function pickBetterDuplicate(a, b) {
+  const aFinished = a.status === 'finished' || (a.homeScore != null && a.awayScore != null);
+  const bFinished = b.status === 'finished' || (b.homeScore != null && b.awayScore != null);
+  if (aFinished && !bFinished) return a;
+  if (bFinished && !aFinished) return b;
+  return a;
+}
+
+function dedupeSameDayMatchups(fixtures) {
+  const map = new Map();
+  for (const fx of [...fixtures].sort(compareFixturesByKickoff)) {
+    const key = sameMatchDayKey(fx);
+    const existing = map.get(key);
+    map.set(key, existing ? pickBetterDuplicate(existing, fx) : fx);
+  }
+  return [...map.values()].sort(compareFixturesByKickoff);
+}
+
 function dedupeFixtures(fixtures) {
   const seen = new Set();
   return fixtures.filter((fx) => {
@@ -446,9 +469,11 @@ function mergeFixtureScores(cur, prev) {
 /** Google bỏ trận đã đá — giữ lại từ cache cũ + cập nhật tỉ số */
 function mergeWithPreviousFixtures(current, previous, scoreMap) {
   const map = new Map();
+  const dayKeys = new Set();
   for (const fx of current) {
     const merged = finalizeFixtureStatus(applyScores({ ...fx }, scoreMap));
     map.set(fixtureKey(merged), merged);
+    dayKeys.add(sameMatchDayKey(merged));
   }
   for (const prev of previous) {
     const key = fixtureKey(prev);
@@ -456,10 +481,20 @@ function mergeWithPreviousFixtures(current, previous, scoreMap) {
       map.set(key, finalizeFixtureStatus(mergeFixtureScores(map.get(key), prev)));
       continue;
     }
+    const prevDayKey = sameMatchDayKey(prev);
+    if (dayKeys.has(prevDayKey)) {
+      for (const [k, cur] of map.entries()) {
+        if (sameMatchDayKey(cur) !== prevDayKey) continue;
+        map.set(k, finalizeFixtureStatus(mergeFixtureScores(cur, applyScores({ ...prev }, scoreMap))));
+        break;
+      }
+      continue;
+    }
     const kept = finalizeFixtureStatus(applyScores({ ...prev }, scoreMap));
     map.set(key, kept);
+    dayKeys.add(prevDayKey);
   }
-  return [...map.values()].sort(compareFixturesByKickoff);
+  return dedupeSameDayMatchups([...map.values()]);
 }
 
 function buildApiPayload(raw, previousFixtures = []) {
@@ -470,9 +505,9 @@ function buildApiPayload(raw, previousFixtures = []) {
     const fx = parseFixtureSnippet(sn.text, refDate);
     if (fx) rawFixtures.push({ id: `fx-${rawFixtures.length + 1}`, ...fx });
   }
-  const uniqueFixtures = dedupeFixtures(rawFixtures)
-    .filter((fx) => !shouldDropFixture(fx))
-    .map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
+  const uniqueFixtures = dedupeSameDayMatchups(
+    dedupeFixtures(rawFixtures).filter((fx) => !shouldDropFixture(fx)),
+  ).map((f, i) => ({ ...f, id: `fx-${i + 1}` }));
   const scoreMap = buildScoreMap(raw, uniqueFixtures);
   const mergedFixtures = mergeWithPreviousFixtures(uniqueFixtures, previousFixtures, scoreMap);
   const displayFixtures = filterFixturesForDisplay(mergedFixtures)
@@ -500,7 +535,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -842,10 +877,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe15"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe16"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe15');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe16');
   }
   return out;
 }
@@ -1159,7 +1194,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 14 ||
+  cache.api.schemaVersion !== 15 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {

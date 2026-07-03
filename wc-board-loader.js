@@ -73,7 +73,10 @@
     s.id = 'wc-layout-css';
     s.textContent =
       '.wc-card-left{justify-content:center!important}'
-      + '.wc-group{display:none!important}';
+      + '.wc-group{display:none!important}'
+      + '.wc-schedule-footnote{display:flex;align-items:center;gap:6px;margin-top:14px;padding:6px 2px;font-size:13px;color:#333}'
+      + '.wc-schedule-footnote em{font-style:italic;font-weight:400}'
+      + '.wc-footnote-icon{font-size:15px;line-height:1;flex-shrink:0}';
     (document.head || document.documentElement).appendChild(s);
   })();
 
@@ -160,7 +163,11 @@
         }).join('') + '</div>'
         + '</div>'
       );
-    }).join('');
+    }).join('')
+      + '<div class="wc-schedule-footnote">'
+      + '<span class="wc-footnote-icon" aria-hidden="true">📅</span>'
+      + '<em>Lịch thi đấu sẽ được cập nhật thường xuyên.</em>'
+      + '</div>';
     stripBetButtons(board);
     board.setAttribute('data-wc-loaded', '1');
     scheduleIframeHeightNotify();
@@ -222,7 +229,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '15-banner-fullwidth',
+    version: '16-dedupe-footnote',
   };
 
   if (inIframe()) {
