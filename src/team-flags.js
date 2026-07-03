@@ -45,8 +45,8 @@ const TEAM_ISO = {
   spain: 'es',
   pháp: 'fr',
   france: 'fr',
-  anh: 'gb',
-  england: 'gb',
+  anh: 'gb-eng',
+  england: 'gb-eng',
   'bồ đào nha': 'pt',
   portugal: 'pt',
   bỉ: 'be',
@@ -171,6 +171,7 @@ export function flagUrlForTeam(teamName, tbdFlagUrl) {
   const iso = resolveTeamIso(teamName);
   if (!iso) return TBD_FLAG_FALLBACK;
   if (iso === 'gb-sct') return 'https://flagcdn.com/w80/gb-sct.png';
+  if (iso === 'gb-eng') return 'https://flagcdn.com/w80/gb-eng.png';
   return `https://flagcdn.com/w80/${iso}.png`;
 }
 

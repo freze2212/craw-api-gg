@@ -1,0 +1,131 @@
+<!-- CMS / iframe: /schedule3 -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style type="text/css">html, body {
+    margin: 0;
+    padding: 0;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: auto;
+  }
+    .content-html { font-family: 'Roboto', sans-serif; width: 100%; max-width: 100%; margin: 0; padding: 0; box-sizing: border-box; }
+    .wc-top-banner { width: 100%; line-height: 0; }
+    .wc-top-banner img { width: 100%; height: auto; display: block; }
+    .brand-header { width: 100%; }
+    .brand-header-item-1 {
+        text-align: center; font-family: 'Roboto', Times, serif; font-size: 28px;
+        font-weight: 700; color: #25c4af; padding: 8px 0 5px; line-height: 23.44px;
+    }
+    .brand-header-item-2 {
+        text-align: center; font-family: 'Roboto', Times, serif; font-size: 14px;
+        font-weight: 700; line-height: 18.75px; color: #1a9e8c; margin-top: 5px;
+    }
+    .blink-text { animation: blinkColor 0.5s infinite alternate; }
+    @keyframes blinkColor { 0% { color: #25c4af; } 100% { color: #42d9c2; } }
+
+    .schedule-wrapper { max-width: 100%; margin: 20px auto; }
+
+    .tab-menu {
+        display: flex; justify-content: center; gap: 5px;
+        position: relative; z-index: 10;
+    }
+    .tab-btn-active {
+        padding: 12px 25px;
+        background: linear-gradient(90deg, #25c4af, #42d9c2);
+        color: #fff; border: 2px solid #25c4af; border-bottom: none;
+        border-radius: 10px 10px 0 0; font-weight: bold; font-size: 14px;
+        padding-bottom: 15px; margin-top: -5px;
+    }
+    .tab-content-box {
+        border: 2px solid #25c4af; border-radius: 15px; background: #fff;
+        padding: 16px; min-height: 250px;
+        box-shadow: 0 6px 18px rgba(37, 196, 175, 0.12); margin-top: 0;
+    }
+
+    .wc-fixture-board { width: 100%; }
+    .wc-day-block { margin-bottom: 14px; }
+    .wc-day-head {
+        background: linear-gradient(90deg, #25c4af, #42d9c2);
+        color: #fff; font-weight: 700; font-size: 15px;
+        padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;
+        text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .wc-match-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .wc-match-card {
+        display: flex;
+        background: linear-gradient(135deg, #f4fffc 0%, #e8faf7 100%);
+        border: none; border-radius: 10px; overflow: hidden; min-height: 112px;
+        box-shadow: 0 0 0 1px rgba(37, 196, 175, 0.25);
+    }
+    .wc-card-left {
+        flex: 1; padding: 12px 12px 12px 14px;
+        border-right: 1px solid rgba(37, 196, 175, 0.2);
+        display: flex; flex-direction: column; justify-content: center; gap: 7px;
+    }
+    .wc-group { display: none !important; }
+    .wc-team {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 14px; font-weight: 700; color: #1a9e8c; line-height: 1.2;
+    }
+    .wc-team img {
+        width: 28px; height: 20px; object-fit: cover; border-radius: 2px;
+        border: 1px solid #ccc; flex-shrink: 0; background: #fff;
+    }
+    .wc-card-right {
+        width: 96px; flex-shrink: 0; padding: 12px 10px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .wc-datetime { text-align: center; color: #25c4af; font-weight: 700; line-height: 1.4; }
+    .wc-datetime .d { font-size: 14px; display: block; }
+    .wc-datetime .t { font-size: 14px; display: block; }
+    .wc-score { text-align: center; color: #25c4af; font-weight: 800; line-height: 1.3; }
+    .wc-score-val { font-size: 20px; display: block; letter-spacing: 1px; }
+    .wc-pen-val { font-size: 12px; display: block; font-weight: 700; opacity: 0.9; margin-top: 2px; }
+    .wc-score-lbl { font-size: 11px; display: block; opacity: 0.75; font-weight: 700; }
+    .wc-match-card.wc-finished { opacity: 0.92; }
+    .wc-board-empty, .wc-board-error {
+        text-align: center; padding: 24px; color: #25c4af; font-weight: 600;
+    }
+    .wc-board-error { color: #c62828; }
+    .wc-bet-btn { display: none !important; }
+
+    @media (max-width: 640px) {
+        .wc-match-grid { grid-template-columns: 1fr; }
+        .tab-btn-active { padding: 10px 16px; font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+<div class="content-html">
+<div class="wc-top-banner">
+<img src="https://hacksexy.online/assets/gg-banner.png" alt="Lịch thi đấu World Cup GG" loading="eager" decoding="async" />
+</div>
+<div class="brand-header">
+<p>&nbsp;</p>
+<div class="brand-header-item-1"><span style="font-family:Times New Roman,Times,serif;">GG - LỊCH THI ĐẤU WORLD CUP 2026</span></div>
+<div class="brand-header-item-2"><span style="font-family:Times New Roman,Times,serif;">CẬP NHẬT LIÊN TỤC TỪ GOOGLE SPORTS</span></div>
+</div>
+
+<div class="schedule-wrapper">
+<div class="tab-menu">
+<div class="tab-btn-active">LỊCH THI ĐẤU</div>
+</div>
+<div class="tab-content-box">
+<div id="wc-fixture-board" class="wc-fixture-board" data-wc-api="https://hacksexy.online">
+<div class="wc-board-empty">Đang tải lịch thi đấu...</div>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://hacksexy.online/wc-board-loader.js?v=iframe16"></script>
+</body>
+</html>

@@ -21,6 +21,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const CACHE_FILE = path.join(DATA_DIR, 'cache.json');
 const SCHEDULE_HTML = path.join(__dirname, 'worldcup-schedule-mm.html');
 const SCHEDULE2_HTML = path.join(__dirname, 'worldcup-schedule-rr.html');
+const SCHEDULE3_HTML = path.join(__dirname, 'worldcup-schedule-gg.html');
 const SCHEDULE2_LEGACY = path.join(__dirname, 'worldcup-schedule-2.html');
 const BOARD_LOADER_JS = path.join(__dirname, 'wc-board-loader.js');
 const IFRAME_PARENT_JS = path.join(__dirname, 'wc-iframe-parent.js');
@@ -535,7 +536,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 15,
+    schemaVersion: 16,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -796,6 +797,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
 
 const BUILD_TAG = 'wc-noscript-embed-v20';
 const MM_BANNER_PATH = '/assets/mm-banner.png';
+const GG_BANNER_PATH = '/assets/gg-banner.png';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
@@ -916,6 +918,7 @@ function injectTopBanner(html, bannerUrl, alt) {
   let out = sanitizeLegacyBanner(html);
   out = out.replace(/https:\/\/i\.ibb\.co\/(?:WWSnXKXM|vx21WzWT)[^"']*/g, bannerUrl);
   out = out.replace(/https:\/\/hacksexy\.online\/assets\/mm-banner\.(?:jpg|png)/g, bannerUrl);
+  out = out.replace(/https:\/\/hacksexy\.online\/assets\/gg-banner\.(?:jpg|png)/g, bannerUrl);
   out = applyBannerCssFix(out);
   if (!hasTopBannerDiv(out)) {
     out = out.replace(
@@ -971,15 +974,23 @@ function patchSchedule2Html(html, req) {
   return injectTopBanner(out, RR_TOP_BANNER, 'Lịch thi đấu World Cup RR88');
 }
 
+/** GG /schedule3 — banner teal + lịch thi đấu */
+function patchSchedule3Html(html, req) {
+  let out = patchScheduleHtml(html, req);
+  return injectTopBanner(out, resolveBannerUrl(req, GG_BANNER_PATH), 'Lịch thi đấu World Cup GG');
+}
+
 app.get('/_wc/meta', async (_req, res) => {
   const embedHeight = await getEmbedHeight();
   res.json({
     build: BUILD_TAG,
     patchScheduleHtml: true,
     schedule2: '/schedule2',
+    schedule3: '/schedule3',
     embedHeight,
     embedSnippetRr: '/embed/snippet/rr.txt',
     embedSnippetMm: '/embed/snippet/mm.txt',
+    embedSnippetGg: '/embed/snippet/gg.txt',
   });
 });
 
@@ -997,6 +1008,14 @@ app.get('/embed/snippet/mm.txt', async (_req, res) => {
     .setHeader('Cache-Control', 'no-cache')
     .setHeader('X-WC-Embed-Height', String(h))
     .send(buildIframeSnippet('/schedule', h, 'Lịch thi đấu World Cup MM88'));
+});
+
+app.get('/embed/snippet/gg.txt', async (_req, res) => {
+  const h = await getEmbedHeight();
+  res.type('text/plain; charset=utf-8')
+    .setHeader('Cache-Control', 'no-cache')
+    .setHeader('X-WC-Embed-Height', String(h))
+    .send(buildIframeSnippet('/schedule3', h, 'Lịch thi đấu World Cup GG'));
 });
 
 app.get('/embed/snippet/rr', async (_req, res) => {
@@ -1030,6 +1049,22 @@ p{color:#444;line-height:1.5}</style></head><body>
 </body></html>`);
 });
 
+app.get('/embed/snippet/gg', async (_req, res) => {
+  const h = await getEmbedHeight();
+  const snippet = buildIframeSnippet('/schedule3', h, 'Lịch thi đấu World Cup GG');
+  const esc = snippet.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  res.type('html').setHeader('Cache-Control', 'no-cache').send(`<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"/><title>GG iframe snippet</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
+textarea{width:100%;height:220px;font-family:monospace;font-size:13px;padding:12px;border:1px solid #ccc;border-radius:8px}
+p{color:#444;line-height:1.5}</style></head><body>
+<h1>GG — dán iframe vào CMS (không cần script)</h1>
+<p>Chiều cao tự tính: <strong>${h}px</strong> — copy toàn bộ ô dưới:</p>
+<textarea readonly onclick="this.select()">${esc}</textarea>
+<p>Cập nhật khi thêm trận: mở lại trang này.</p>
+</body></html>`);
+});
+
 app.get('/assets/mm-banner.png', async (_req, res) => {
   try {
     const file = path.join(__dirname, 'assets', 'mm-banner.png');
@@ -1044,6 +1079,22 @@ app.get('/assets/mm-banner.png', async (_req, res) => {
 
 app.get('/assets/mm-banner.jpg', async (_req, res) => {
   res.redirect(301, '/assets/mm-banner.png');
+});
+
+app.get('/assets/gg-banner.png', async (_req, res) => {
+  try {
+    const file = path.join(__dirname, 'assets', 'gg-banner.png');
+    const buf = await readFile(file);
+    res.type('image/png')
+      .setHeader('Cache-Control', 'public, max-age=604800')
+      .send(buf);
+  } catch {
+    res.status(404).send('gg-banner.png not found');
+  }
+});
+
+app.get('/assets/gg-banner.jpg', async (_req, res) => {
+  res.redirect(301, '/assets/gg-banner.png');
 });
 
 app.get('/wc-board-loader.js', async (_req, res) => {
@@ -1114,6 +1165,23 @@ app.get('/schedule2', async (req, res) => {
       .send(html);
   } catch {
     res.status(404).send('worldcup-schedule-2.html not found');
+  }
+});
+
+app.get('/schedule3', async (req, res) => {
+  try {
+    const apiBase = resolvePublicApiBase(req);
+    const embedHeight = await getEmbedHeight();
+    const html = patchSchedule3Html(await readFile(SCHEDULE3_HTML, 'utf8'), req);
+    allowIframeEmbed(res);
+    res.type('html')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('X-WC-Build', BUILD_TAG)
+      .setHeader('X-WC-Api-Base', apiBase)
+      .setHeader('X-WC-Embed-Height', String(embedHeight))
+      .send(html);
+  } catch {
+    res.status(404).send('worldcup-schedule-gg.html not found');
   }
 });
 
@@ -1194,7 +1262,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 15 ||
+  cache.api.schemaVersion !== 16 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {
@@ -1213,6 +1281,7 @@ app.listen(CONFIG.port, () => {
   console.log(`  Test UI   http://localhost:${CONFIG.port}/`);
   console.log(`  Schedule  http://localhost:${CONFIG.port}/schedule`);
   console.log(`  Schedule2 http://localhost:${CONFIG.port}/schedule2`);
+  console.log(`  Schedule3 http://localhost:${CONFIG.port}/schedule3`);
   console.log(`  API       http://localhost:${CONFIG.port}/api/v1/worldcup`);
   console.log(`  Refresh   POST http://localhost:${CONFIG.port}/api/v1/worldcup/refresh`);
   console.log('');
