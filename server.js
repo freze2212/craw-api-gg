@@ -840,7 +840,7 @@ function buildIframeSnippet(path, height, title) {
   scrolling="no"
   frameborder="0"
   style="border:0;display:block;width:100%;overflow:visible;vertical-align:top;"
-  loading="lazy"
+  loading="eager"
   referrerpolicy="no-referrer-when-downgrade"
 ></iframe>`;
 }
@@ -859,6 +859,61 @@ function resolvePublicApiBase(req) {
   return `${proto}://${host}`.replace(/\/$/, '');
 }
 
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderMatchCardHtml(m) {
+  const finished = m.status === 'finished' || (m.homeScore != null && m.awayScore != null);
+  const penLine = (m.penHome != null && m.penAway != null)
+    ? `<span class="wc-pen-val">(${escHtml(m.penHome)} - ${escHtml(m.penAway)} pen)</span>`
+    : '';
+  const right = finished && m.homeScore != null && m.awayScore != null
+    ? `<div class="wc-score"><span class="wc-score-val">${escHtml(m.homeScore)} - ${escHtml(m.awayScore)}</span>${penLine}<span class="wc-score-lbl">FT</span></div>`
+    : `<div class="wc-datetime"><span class="d">${escHtml(m.dateDisplay || m.date)}</span><span class="t">${escHtml(m.timeDisplay || m.time)}</span></div>`;
+  return (
+    `<div class="wc-match-card${finished ? ' wc-finished' : ''}">`
+    + '<div class="wc-card-left">'
+    + `<div class="wc-team"><img src="${escHtml(m.homeFlag)}" alt="" loading="lazy" /><span>${escHtml(m.home)}</span></div>`
+    + `<div class="wc-team"><img src="${escHtml(m.awayFlag)}" alt="" loading="lazy" /><span>${escHtml(m.away)}</span></div>`
+    + '</div>'
+    + `<div class="wc-card-right">${right}</div></div>`
+  );
+}
+
+/** Render lịch sẵn trong HTML — CMS GG hay sandbox iframe chặn script vẫn thấy được */
+function renderFixtureBoardHtml(fixtureDays) {
+  if (!fixtureDays?.length) {
+    return '<div class="wc-board-empty">Chưa có lịch thi đấu.</div>';
+  }
+  const body = fixtureDays.map((day) => (
+    '<div class="wc-day-block">'
+    + `<div class="wc-day-head">${escHtml(day.title || `VÒNG ĐẤU BẢNG - ${day.date}`)}</div>`
+    + '<div class="wc-match-grid">'
+    + (day.matches || []).map(renderMatchCardHtml).join('')
+    + '</div></div>'
+  )).join('');
+  return body
+    + '<div class="wc-schedule-footnote">'
+    + '<span class="wc-footnote-icon" aria-hidden="true">📅</span>'
+    + '<em>Lịch thi đấu sẽ được cập nhật thường xuyên.</em>'
+    + '</div>';
+}
+
+function injectPrerenderedBoard(html, api) {
+  const days = api?.fixtureDays;
+  if (!days?.length) return html;
+  return html.replace(
+    /<div class="wc-board-empty">Đang tải lịch thi đấu\.\.\.<\/div>/,
+    renderFixtureBoardHtml(days),
+  );
+}
+
+const FOOTNOTE_CSS =
+  '.wc-schedule-footnote{display:flex;align-items:center;gap:6px;margin-top:14px;padding:6px 2px;font-size:13px;color:#333}'
+  + '.wc-schedule-footnote em{font-style:italic;font-weight:400}'
+  + '.wc-footnote-icon{font-size:15px;line-height:1;flex-shrink:0}';
+
 /** Fix legacy HTML — strip inline scripts + bet buttons */
 function patchScheduleHtml(html, req) {
   const apiBase = resolvePublicApiBase(req);
@@ -874,7 +929,7 @@ function patchScheduleHtml(html, req) {
     .replace(/var BET_URL = [^;]+;/g, '');
   out = out.replace(
     /<\/style>/i,
-    '</style>\n<style>.wc-bet-btn{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important}</style>',
+    `</style>\n<style>.wc-bet-btn{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important}${FOOTNOTE_CSS}</style>`,
   );
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
@@ -962,22 +1017,25 @@ function injectGiftFall(html) {
 }
 
 /** MM88 /schedule — banner + hiệu ứng quà rơi */
-function patchSchedule1Html(html, req) {
+function patchSchedule1Html(html, req, api) {
   let out = patchScheduleHtml(html, req);
   out = injectTopBanner(out, resolveBannerUrl(req, MM_BANNER_PATH), 'Lịch thi đấu World Cup MM88');
-  return injectGiftFall(out);
+  out = injectGiftFall(out);
+  return injectPrerenderedBoard(out, api);
 }
 
 /** RR88 /schedule2 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
-function patchSchedule2Html(html, req) {
+function patchSchedule2Html(html, req, api) {
   let out = patchScheduleHtml(html, req);
-  return injectTopBanner(out, RR_TOP_BANNER, 'Lịch thi đấu World Cup RR88');
+  out = injectTopBanner(out, RR_TOP_BANNER, 'Lịch thi đấu World Cup RR88');
+  return injectPrerenderedBoard(out, api);
 }
 
 /** GG88 /schedule3 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
-function patchSchedule3Html(html, req) {
+function patchSchedule3Html(html, req, api) {
   let out = patchScheduleHtml(html, req);
-  return injectTopBanner(out, GG_TOP_BANNER, 'Lịch thi đấu World Cup GG88');
+  out = injectTopBanner(out, GG_TOP_BANNER, 'Lịch thi đấu World Cup GG88');
+  return injectPrerenderedBoard(out, api);
 }
 
 app.get('/_wc/meta', async (_req, res) => {
@@ -1128,9 +1186,10 @@ function allowIframeEmbed(res) {
 
 app.get('/schedule', async (req, res) => {
   try {
+    const c = cache || (await loadCache());
     const apiBase = resolvePublicApiBase(req);
     const embedHeight = await getEmbedHeight();
-    const html = patchSchedule1Html(await readFile(SCHEDULE_HTML, 'utf8'), req);
+    const html = patchSchedule1Html(await readFile(SCHEDULE_HTML, 'utf8'), req, c.api);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
@@ -1153,9 +1212,10 @@ async function readSchedule2Html() {
 
 app.get('/schedule2', async (req, res) => {
   try {
+    const c = cache || (await loadCache());
     const apiBase = resolvePublicApiBase(req);
     const embedHeight = await getEmbedHeight();
-    const html = patchSchedule2Html(await readSchedule2Html(), req);
+    const html = patchSchedule2Html(await readSchedule2Html(), req, c.api);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
@@ -1170,9 +1230,10 @@ app.get('/schedule2', async (req, res) => {
 
 app.get('/schedule3', async (req, res) => {
   try {
+    const c = cache || (await loadCache());
     const apiBase = resolvePublicApiBase(req);
     const embedHeight = await getEmbedHeight();
-    const html = patchSchedule3Html(await readFile(SCHEDULE3_HTML, 'utf8'), req);
+    const html = patchSchedule3Html(await readFile(SCHEDULE3_HTML, 'utf8'), req, c.api);
     allowIframeEmbed(res);
     res.type('html')
       .setHeader('Cache-Control', 'no-cache')
