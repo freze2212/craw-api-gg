@@ -797,7 +797,7 @@ app.post('/api/v1/worldcup/refresh', async (_req, res) => {
 
 const BUILD_TAG = 'wc-noscript-embed-v20';
 const MM_BANNER_PATH = '/assets/mm-banner.png';
-const GG_BANNER_PATH = '/assets/gg-banner.png';
+const GG_TOP_BANNER = 'https://i.ibb.co/1whRRh2/LI-CH-THI-A-U-WC-2026.jpg';
 const MM_GIFT_IMG = 'https://i.imgur.com/hixxXa9.gif';
 const RR_TOP_BANNER = 'https://i.ibb.co/NgSHXjZd/l-ch-thi-u-WC-rr88-PC-4-1.jpg';
 const EMBED_BASE = 'https://hacksexy.online';
@@ -974,10 +974,10 @@ function patchSchedule2Html(html, req) {
   return injectTopBanner(out, RR_TOP_BANNER, 'Lịch thi đấu World Cup RR88');
 }
 
-/** GG /schedule3 — banner teal + lịch thi đấu */
+/** GG88 /schedule3 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
 function patchSchedule3Html(html, req) {
   let out = patchScheduleHtml(html, req);
-  return injectTopBanner(out, resolveBannerUrl(req, GG_BANNER_PATH), 'Lịch thi đấu World Cup GG');
+  return injectTopBanner(out, GG_TOP_BANNER, 'Lịch thi đấu World Cup GG88');
 }
 
 app.get('/_wc/meta', async (_req, res) => {
