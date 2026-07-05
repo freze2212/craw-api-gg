@@ -19,13 +19,20 @@
     var s = document.createElement('style');
     s.id = 'wc-iframe-embed-css';
     s.textContent = isGg
-      ? 'html,body{margin:0!important;padding:0!important;overflow-x:hidden!important;overflow-y:auto!important;'
-        + '-webkit-overflow-scrolling:touch!important;height:100%!important;min-height:100%!important;max-height:none!important;}'
+      ? 'html,body{height:100%!important;width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;position:fixed!important;left:0!important;top:0!important;touch-action:none!important}'
+        + '#wc-gg-scroll-root,.content-html#wc-gg-scroll-root{position:absolute!important;inset:0!important;height:100%!important;width:100%!important;overflow-x:hidden!important;overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;overscroll-behavior-y:contain!important;-webkit-transform:translateZ(0);transform:translateZ(0)}'
+        + '.wc-match-card,.wc-match-grid,.wc-day-block,.tab-content-box,.schedule-wrapper,.wc-fixture-board,.wc-team,.wc-top-banner img{touch-action:pan-y!important}'
       : 'html,body{margin:0!important;padding:0!important;overflow:visible!important;'
         + 'height:auto!important;min-height:0!important;max-height:none!important;'
         + 'overscroll-behavior:none!important;-webkit-overflow-scrolling:auto!important;}';
     (document.head || document.documentElement).appendChild(s);
+    if (isGg) setupGgScrollRoot();
   })();
+
+  function setupGgScrollRoot() {
+    var root = document.querySelector('.content-html');
+    if (root && !root.id) root.id = 'wc-gg-scroll-root';
+  }
 
   function measurePageHeight() {
     var root = document.documentElement;
@@ -62,10 +69,14 @@
 
   (function injectBannerFixCss() {
     if (document.getElementById('wc-banner-fix-css')) return;
+    var isGg = false;
+    try { isGg = /\/schedule3\/?$/.test(location.pathname || ''); } catch (e) {}
     var s = document.createElement('style');
     s.id = 'wc-banner-fix-css';
-    s.textContent =
-      'html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;box-sizing:border-box}'
+    var htmlBody = isGg
+      ? ''
+      : 'html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;box-sizing:border-box}';
+    s.textContent = htmlBody
       + '.content-html{width:100%;max-width:100%;margin:0;padding:0;box-sizing:border-box}'
       + '.wc-top-banner,.wc-top-banner--mm{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important}'
       + '.wc-top-banner img,.wc-top-banner--mm img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;margin:0!important;position:static!important;object-fit:unset!important;transform:none!important;aspect-ratio:unset!important}';
@@ -234,10 +245,13 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '17-gg88-scroll',
+    version: '18-gg88-touch-scroll',
   };
 
   if (inIframe()) {
+    try {
+      if (/\/schedule3\/?$/.test(location.pathname || '')) setupGgScrollRoot();
+    } catch (e) {}
     window.addEventListener('message', function (e) {
       if (e.data && e.data.type === 'wc-iframe-request-height') scheduleIframeHeightNotify();
     });

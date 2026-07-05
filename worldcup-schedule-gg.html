@@ -7,14 +7,35 @@
 <style type="text/css">html, body {
     margin: 0;
     padding: 0;
-    overflow: visible !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: auto;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    left: 0;
+    top: 0;
   }
-    .content-html { font-family: 'Roboto', sans-serif; width: 100%; max-width: 100%; margin: 0; padding: 0; box-sizing: border-box; }
+    #wc-gg-scroll-root.content-html {
+        font-family: 'Roboto', sans-serif;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: scroll;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        overscroll-behavior-y: contain;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+    .wc-match-card, .wc-match-grid, .wc-day-block, .tab-content-box,
+    .schedule-wrapper, .wc-fixture-board, .wc-team, .wc-top-banner img {
+        touch-action: pan-y;
+    }
     .wc-top-banner { width: 100%; line-height: 0; }
     .wc-top-banner img { width: 100%; height: auto; display: block; }
     .brand-header { width: 100%; }
@@ -104,7 +125,7 @@
 </style>
 </head>
 <body>
-<div class="content-html">
+<div class="content-html" id="wc-gg-scroll-root">
 <div class="wc-top-banner">
 <img src="https://i.ibb.co/1whRRh2/LI-CH-THI-A-U-WC-2026.jpg" alt="GG88 - Lịch thi đấu WC" loading="eager" decoding="async" />
 </div>
@@ -126,6 +147,6 @@
 </div>
 </div>
 
-<script src="https://hacksexy.online/wc-board-loader.js?v=iframe17"></script>
+<script src="https://hacksexy.online/wc-board-loader.js?v=iframe18"></script>
 </body>
 </html>

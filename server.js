@@ -855,7 +855,7 @@ function buildGgIframeSnippet(title) {
   height="700"
   scrolling="yes"
   frameborder="0"
-  style="border:0;display:block;width:100%;height:75vh;min-height:420px;overflow:auto;-webkit-overflow-scrolling:touch;vertical-align:top;"
+  style="border:0;display:block;width:100%;height:75vh;min-height:420px;touch-action:pan-y;vertical-align:top;"
   loading="eager"
   referrerpolicy="no-referrer-when-downgrade"
 ></iframe>`;
@@ -950,10 +950,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe17"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe18"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe17');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe18');
   }
   return out;
 }
