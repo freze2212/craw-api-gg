@@ -840,6 +840,22 @@ function buildIframeSnippet(path, height, title) {
   scrolling="no"
   frameborder="0"
   style="border:0;display:block;width:100%;overflow:visible;vertical-align:top;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade"
+></iframe>`;
+}
+
+/** GG88 — iframe viewport + scroll trong khung (Android/PC CMS) */
+function buildGgIframeSnippet(title) {
+  const src = `${EMBED_BASE}/schedule3`;
+  return `<iframe
+  src="${src}"
+  title="${title}"
+  width="100%"
+  height="700"
+  scrolling="yes"
+  frameborder="0"
+  style="border:0;display:block;width:100%;height:75vh;min-height:420px;overflow:auto;-webkit-overflow-scrolling:touch;vertical-align:top;"
   loading="eager"
   referrerpolicy="no-referrer-when-downgrade"
 ></iframe>`;
@@ -934,10 +950,10 @@ function patchScheduleHtml(html, req) {
   if (!out.includes('wc-board-loader.js')) {
     out = out.replace(
       /<\/div>\s*$/i,
-      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe16"></script>\n',
+      '</div>\n<script src="https://hacksexy.online/wc-board-loader.js?v=iframe17"></script>\n',
     );
   } else {
-    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe16');
+    out = out.replace(/wc-board-loader\.js(\?[^"']*)?/g, 'wc-board-loader.js?v=iframe17');
   }
   return out;
 }
@@ -1034,7 +1050,7 @@ function patchSchedule2Html(html, req, api) {
 /** GG88 /schedule3 — luôn chèn banner trên cùng (kể cả file HTML trên VPS cũ) */
 function patchSchedule3Html(html, req, api) {
   let out = patchScheduleHtml(html, req);
-  out = injectTopBanner(out, GG_TOP_BANNER, 'Lịch thi đấu World Cup GG88');
+  out = injectTopBanner(out, GG_TOP_BANNER, 'Lịch thi đấu WC GG88');
   return injectPrerenderedBoard(out, api);
 }
 
@@ -1073,7 +1089,7 @@ app.get('/embed/snippet/gg.txt', async (_req, res) => {
   res.type('text/plain; charset=utf-8')
     .setHeader('Cache-Control', 'no-cache')
     .setHeader('X-WC-Embed-Height', String(h))
-    .send(buildIframeSnippet('/schedule3', h, 'Lịch thi đấu World Cup GG'));
+    .send(buildGgIframeSnippet('GG88 - Lịch thi đấu WC'));
 });
 
 app.get('/embed/snippet/rr', async (_req, res) => {
@@ -1109,15 +1125,15 @@ p{color:#444;line-height:1.5}</style></head><body>
 
 app.get('/embed/snippet/gg', async (_req, res) => {
   const h = await getEmbedHeight();
-  const snippet = buildIframeSnippet('/schedule3', h, 'Lịch thi đấu World Cup GG');
+  const snippet = buildGgIframeSnippet('GG88 - Lịch thi đấu WC');
   const esc = snippet.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   res.type('html').setHeader('Cache-Control', 'no-cache').send(`<!DOCTYPE html>
-<html lang="vi"><head><meta charset="utf-8"/><title>GG iframe snippet</title>
+<html lang="vi"><head><meta charset="utf-8"/><title>GG88 iframe snippet</title>
 <style>body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
 textarea{width:100%;height:220px;font-family:monospace;font-size:13px;padding:12px;border:1px solid #ccc;border-radius:8px}
 p{color:#444;line-height:1.5}</style></head><body>
-<h1>GG — dán iframe vào CMS (không cần script)</h1>
-<p>Chiều cao tự tính: <strong>${h}px</strong> — copy toàn bộ ô dưới:</p>
+<h1>GG88 — dán iframe vào CMS (cuộn trong khung)</h1>
+<p>Chiều cao khung: <strong>75vh</strong> (tối thiểu 420px) — copy toàn bộ ô dưới:</p>
 <textarea readonly onclick="this.select()">${esc}</textarea>
 <p>Cập nhật khi thêm trận: mở lại trang này.</p>
 </body></html>`);

@@ -13,12 +13,17 @@
 
   (function injectIframeEmbedCss() {
     if (!inIframe() || document.getElementById('wc-iframe-embed-css')) return;
+    var path = '';
+    try { path = location.pathname || ''; } catch (e) {}
+    var isGg = /\/schedule3\/?$/.test(path);
     var s = document.createElement('style');
     s.id = 'wc-iframe-embed-css';
-    s.textContent =
-      'html,body{margin:0!important;padding:0!important;overflow:visible!important;'
-      + 'height:auto!important;min-height:0!important;max-height:none!important;'
-      + 'overscroll-behavior:none!important;-webkit-overflow-scrolling:auto!important;}';
+    s.textContent = isGg
+      ? 'html,body{margin:0!important;padding:0!important;overflow-x:hidden!important;overflow-y:auto!important;'
+        + '-webkit-overflow-scrolling:touch!important;height:100%!important;min-height:100%!important;max-height:none!important;}'
+      : 'html,body{margin:0!important;padding:0!important;overflow:visible!important;'
+        + 'height:auto!important;min-height:0!important;max-height:none!important;'
+        + 'overscroll-behavior:none!important;-webkit-overflow-scrolling:auto!important;}';
     (document.head || document.documentElement).appendChild(s);
   })();
 
@@ -229,7 +234,7 @@
     boot: boot,
     loadBoard: loadBoard,
     notifyIframeHeight: notifyIframeHeight,
-    version: '16-dedupe-footnote',
+    version: '17-gg88-scroll',
   };
 
   if (inIframe()) {
