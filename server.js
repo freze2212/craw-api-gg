@@ -212,6 +212,29 @@ function shouldDropFixture(fx) {
   return roundRank(inferRound(fx.date)) >= roundRank('r16');
 }
 
+/** Cùng đội cùng ngày có 2 slot (1 trận thật + 1 TBD bracket) — bỏ slot TBD */
+function dropDuplicateTeamDayTbd(fixtures) {
+  const byTeamDay = new Map();
+  for (const fx of fixtures) {
+    for (const team of [fx.home, fx.away]) {
+      if (isTbdTeam(team)) continue;
+      const key = `${fx.date}|${normTeamKey(team)}`;
+      if (!byTeamDay.has(key)) byTeamDay.set(key, []);
+      byTeamDay.get(key).push(fx);
+    }
+  }
+  const drop = new Set();
+  for (const list of byTeamDay.values()) {
+    if (list.length < 2) continue;
+    const withTbd = list.filter((fx) => isTbdTeam(fx.home) || isTbdTeam(fx.away));
+    const withoutTbd = list.filter((fx) => !isTbdTeam(fx.home) && !isTbdTeam(fx.away));
+    if (withTbd.length && withoutTbd.length) {
+      withTbd.forEach((fx) => drop.add(fixtureKey(fx)));
+    }
+  }
+  return fixtures.filter((fx) => !drop.has(fixtureKey(fx)));
+}
+
 /**
  * Chỉ hiển thị trận knock-out khi đủ 2 đội và không còn trận vòng trước chưa kết thúc.
  * Tránh Vòng 16 hiện Canada vs TBD / slot rỗng khi Đức–Paraguay (Vòng 32) chưa đá xong.
@@ -233,13 +256,13 @@ function filterFixturesForDisplay(fixtures) {
     blockedTeams.add(normTeamKey(fx.away));
   }
 
-  return visible.filter((fx) => {
+  return dropDuplicateTeamDayTbd(visible.filter((fx) => {
     const round = inferRound(fx.date);
     if (roundRank(round) < roundRank('r16')) return true;
     const home = normTeamKey(fx.home);
     const away = normTeamKey(fx.away);
     return !blockedTeams.has(home) && !blockedTeams.has(away);
-  });
+  }));
 }
 
 const PEN_KEYWORD_RE = /pen|pens|pk|luân\s*lưu|luan\s*luu|sút\s*luân/i;
@@ -536,7 +559,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 16,
+    schemaVersion: 17,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -1339,7 +1362,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 16 ||
+  cache.api.schemaVersion !== 17 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {

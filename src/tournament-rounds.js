@@ -42,8 +42,8 @@ export function inferRound(dateStr) {
   // Vòng loại 16 đội (4/7 – 7/7)
   if (inRange(p, { d: 4, m: 7 }, { d: 7, m: 7 })) return 'r16';
 
-  // Tứ kết (9–11/7; Google có thể hiện 8–10/7)
-  if (inRange(p, { d: 8, m: 7 }, { d: 11, m: 7 })) return 'qf';
+  // Tứ kết (8–12/7; Google có thể hiện 12/7 cho trận cuối vòng QF)
+  if (inRange(p, { d: 8, m: 7 }, { d: 12, m: 7 })) return 'qf';
 
   // Bán kết (14–15/7)
   if (inRange(p, { d: 14, m: 7 }, { d: 15, m: 7 })) return 'sf';
