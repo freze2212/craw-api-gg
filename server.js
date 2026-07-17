@@ -559,7 +559,7 @@ function buildApiPayload(raw, previousFixtures = []) {
   const tournament = titleSnippet?.text || 'FIFA World Cup';
 
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     tournament,
     updatedAt: raw.updatedAt || new Date().toISOString(),
     source: {
@@ -1362,7 +1362,7 @@ app.get('/', async (_req, res) => {
 await loadCache();
 const needsApiRebuild =
   !cache?.api ||
-  cache.api.schemaVersion !== 17 ||
+  cache.api.schemaVersion !== 18 ||
   !cache.api.fixtureDays?.length ||
   !cache.api.fixtures?.[0]?.homeFlag;
 if (needsApiRebuild) {

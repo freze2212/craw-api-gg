@@ -45,14 +45,14 @@ export function inferRound(dateStr) {
   // Tứ kết (8–12/7; Google có thể hiện 12/7 cho trận cuối vòng QF)
   if (inRange(p, { d: 8, m: 7 }, { d: 12, m: 7 })) return 'qf';
 
-  // Bán kết (14–15/7)
-  if (inRange(p, { d: 14, m: 7 }, { d: 15, m: 7 })) return 'sf';
+  // Bán kết (14–16/7; Google có thể hiện SF thứ 2 ngày 16/7)
+  if (inRange(p, { d: 14, m: 7 }, { d: 16, m: 7 })) return 'sf';
 
-  // Tranh hạng 3 (18/7)
-  if (p.m === 7 && p.d === 18) return 'third';
+  // Tranh hạng 3 (18–19/7)
+  if (inRange(p, { d: 18, m: 7 }, { d: 19, m: 7 })) return 'third';
 
-  // Chung kết (19/7)
-  if (p.m === 7 && p.d === 19) return 'final';
+  // Chung kết (20/7)
+  if (p.m === 7 && p.d === 20) return 'final';
 
   // Fallback: ngày lẻ trên sơ đồ bracket (vd. 12/7) — không gán nhầm Vòng 16
   if (p.m === 6 && p.d >= 28) return 'r32';
